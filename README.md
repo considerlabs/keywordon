@@ -2,6 +2,9 @@
 
 키워드 검색량·경쟁도·기회지수·AI 글쓰기를 제공하는 키워드 인텔리전스 플랫폼입니다.
 
+**인수인계 문서:** [documentation/인수인계.md](./documentation/인수인계.md)  
+프로덕션: https://keywordon.vercel.app · GitHub: https://github.com/considerlabs/keywordon
+
 ## 기능
 
 - 키워드 분석 (네이버/구글, 플랜별 쿼터·잠금)
@@ -10,7 +13,7 @@
 - 대량 조회 + CSV
 - 키워드 발굴
 - 블로그 분석 / 사이트 진단
-- Copilot AI 글쓰기 (AI Gateway)
+- Copilot AI 글쓰기 (Gemini 3.6 Flash 직접 호출)
 - 멤버십 플랜 + Stripe 체크아웃
 - Clerk 로그인
 - Chrome 확장 (`extension/`)
@@ -19,6 +22,8 @@
 
 ```bash
 npm install
+vercel env pull .env.local --yes --scope briank-projects
+npm run db:push
 npm run dev
 ```
 
