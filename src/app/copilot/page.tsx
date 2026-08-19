@@ -25,10 +25,22 @@ export default function CopilotPage() {
       });
 
       if (!response.ok) {
-        const payload = await response.json();
-        throw new Error(payload.error ?? "AI 생성에 실패했습니다.");
+        const contentType = response.headers.get("content-type") ?? "";
+        if (contentType.includes("application/json")) {
+          const payload = (await response.json()) as {
+            error?: string;
+            model?: string;
+          };
+          throw new Error(
+            payload.model
+              ? `${payload.error ?? "AI 생성 실패"} (model: ${payload.model})`
+              : (payload.error ?? "AI 생성에 실패했습니다."),
+          );
+        }
+        throw new Error("AI 생성에 실패했습니다.");
       }
 
+      // Non-stream plain text or streamed chunks
       const reader = response.body?.getReader();
       if (!reader) throw new Error("스트림을 읽을 수 없습니다.");
       const decoder = new TextDecoder();
@@ -38,6 +50,10 @@ export default function CopilotPage() {
         if (done) break;
         text += decoder.decode(value, { stream: true });
         setOutput(text);
+      }
+
+      if (!text.trim()) {
+        throw new Error("생성된 내용이 없습니다. 다시 시도해 주세요.");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "AI 생성에 실패했습니다.");
