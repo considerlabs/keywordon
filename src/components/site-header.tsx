@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -59,18 +59,18 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-2">
           {clerkEnabled ? (
-            <>
-              <SignedOut>
+            <Show
+              when="signed-in"
+              fallback={
                 <SignInButton mode="modal">
                   <button className="rounded-full bg-[var(--ink)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand)]">
                     로그인
                   </button>
                 </SignInButton>
-              </SignedOut>
-              <SignedIn>
-                <UserButton />
-              </SignedIn>
-            </>
+              }
+            >
+              <UserButton />
+            </Show>
           ) : (
             <Link
               href="/shop"
