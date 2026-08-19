@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { streamText } from "ai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { gateway, streamText } from "ai";
 import { getAuthContext } from "@/lib/auth";
 import { assertFeature } from "@/lib/quota";
 import { incrementAiUsage } from "@/lib/db/users";
 import { resolveKeywordAnalysis } from "@/lib/providers/keyword-data";
+
+const GEMINI_MODEL = "gemini-3.6-flash";
+
+function resolveCopilotModel() {
+  const apiKey =
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY;
+
+  if (apiKey) {
+    const google = createGoogleGenerativeAI({ apiKey });
+    return google(GEMINI_MODEL);
+  }
+
+  // Vercel AI Gateway (OIDC / AI_GATEWAY_API_KEY)
+  return gateway(`google/${GEMINI_MODEL}`);
+}
 
 export async function POST(request: NextRequest) {
   const authContext = await getAuthContext();
@@ -40,23 +58,36 @@ export async function POST(request: NextRequest) {
 
   await incrementAiUsage(authContext.userId);
 
-  const result = streamText({
-    model: "google/gemini-3.5-flash",
-    system:
-      "당신은 한국어 SEO·콘텐츠 마케터입니다. 검색 의도를 반영한 완성도 높은 글을 작성하고, 과장 광고 표현은 피합니다.",
-    prompt: `키워드: ${keyword}
+  try {
+    const result = streamText({
+      model: resolveCopilotModel(),
+      system:
+        "당신은 한국어 SEO·콘텐츠 마케터입니다. 검색 의도를 반영한 완성도 높은 글을 작성하고, 과장 광고 표현은 피합니다.",
+      prompt: `키워드: ${keyword}
 의도: ${intent}
 톤: ${tone}
 월간 검색량: ${data.monthlyVolume}
 카테고리: ${data.category}/${data.subcategory}
 연관어: ${data.relatedInternal
-      .slice(0, 8)
-      .map((item) => item.keyword)
-      .join(", ")}
+  .slice(0, 8)
+  .map((item) => item.keyword)
+  .join(", ")}
 
 위 정보를 바탕으로 ${intent}용 한국어 초안을 작성하세요.
 구성: 제목 후보 3개, 서론, 본문(소제목 포함), 결론, SEO 메타 설명 1개.`,
-  });
+    });
 
-  return result.toTextStreamResponse();
+    return result.toTextStreamResponse();
+  } catch (error) {
+    console.error("copilot error", error);
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "AI 초안 생성에 실패했습니다. Gemini API 키 또는 모델을 확인해 주세요.",
+      },
+      { status: 500 },
+    );
+  }
 }
