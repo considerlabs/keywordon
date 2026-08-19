@@ -6,20 +6,25 @@ import { assertFeature } from "@/lib/quota";
 import { incrementAiUsage } from "@/lib/db/users";
 import { resolveKeywordAnalysis } from "@/lib/providers/keyword-data";
 
+/** Google AI Studio / Generative Language API model id */
 const GEMINI_MODEL = "gemini-3.6-flash";
 
 function resolveCopilotModel() {
-  const apiKey =
+  const apiKey = (
     process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
     process.env.GEMINI_API_KEY ||
-    process.env.GOOGLE_API_KEY;
+    process.env.GOOGLE_API_KEY ||
+    ""
+  ).trim();
 
-  if (apiKey) {
+  // Google AI Studio keys look like "AIza...". Other formats (e.g. "AQ.") are ignored
+  // so we don't accidentally hit a broken provider path that falls back to gemini-2.0-flash.
+  if (apiKey.startsWith("AIza")) {
     const google = createGoogleGenerativeAI({ apiKey });
     return google(GEMINI_MODEL);
   }
 
-  // Vercel AI Gateway (OIDC / AI_GATEWAY_API_KEY)
+  // Prefer Vercel AI Gateway (OIDC on Vercel, or AI_GATEWAY_API_KEY locally)
   return gateway(`google/${GEMINI_MODEL}`);
 }
 
@@ -59,8 +64,9 @@ export async function POST(request: NextRequest) {
   await incrementAiUsage(authContext.userId);
 
   try {
+    const model = resolveCopilotModel();
     const result = streamText({
-      model: resolveCopilotModel(),
+      model,
       system:
         "당신은 한국어 SEO·콘텐츠 마케터입니다. 검색 의도를 반영한 완성도 높은 글을 작성하고, 과장 광고 표현은 피합니다.",
       prompt: `키워드: ${keyword}
@@ -80,12 +86,15 @@ export async function POST(request: NextRequest) {
     return result.toTextStreamResponse();
   } catch (error) {
     console.error("copilot error", error);
+    const message =
+      error instanceof Error
+        ? error.message
+        : "AI 초안 생성에 실패했습니다. Gemini API 키 또는 모델을 확인해 주세요.";
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "AI 초안 생성에 실패했습니다. Gemini API 키 또는 모델을 확인해 주세요.",
+        error: message.includes("gemini-2.0")
+          ? "모델 설정을 갱신했습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요."
+          : message,
       },
       { status: 500 },
     );
