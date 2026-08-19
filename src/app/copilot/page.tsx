@@ -10,14 +10,12 @@ export default function CopilotPage() {
   const [output, setOutput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [modelUsed, setModelUsed] = useState("");
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
     setError("");
     setOutput("");
-    setModelUsed("");
 
     try {
       const response = await fetch("/api/copilot", {
@@ -26,26 +24,11 @@ export default function CopilotPage() {
         body: JSON.stringify({ keyword, tone, intent }),
       });
 
-      const responseModel = response.headers.get("X-KeywordOn-Model") ?? "";
-      setModelUsed(responseModel);
-
       if (!response.ok) {
         const contentType = response.headers.get("content-type") ?? "";
         if (contentType.includes("application/json")) {
-          const payload = (await response.json()) as {
-            error?: string;
-            model?: string;
-            endpoint?: string;
-          };
-          throw new Error(
-            [
-              payload.error ?? "AI 생성에 실패했습니다.",
-              payload.model ? `model=${payload.model}` : null,
-              payload.endpoint ? `endpoint=${payload.endpoint}` : null,
-            ]
-              .filter(Boolean)
-              .join(" | "),
-          );
+          const payload = (await response.json()) as { error?: string };
+          throw new Error(payload.error ?? "AI 생성에 실패했습니다.");
         }
         throw new Error("AI 생성에 실패했습니다.");
       }
@@ -80,11 +63,9 @@ export default function CopilotPage() {
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-[var(--ink)]">
           AI 글쓰기 어시스턴트
         </h1>
-      <p className="mt-2 text-[var(--muted)]">
-        키워드 분석 결과를 반영해 블로그·랜딩 초안을 생성합니다. Gemini 3.6 Flash 사용.
-        Google AI Studio의 <code className="text-[var(--ink)]">AIza...</code> API 키가
-        서버에 등록되어 있어야 합니다.
-      </p>
+        <p className="mt-2 text-[var(--muted)]">
+          키워드 분석 결과를 반영해 블로그·랜딩 초안을 생성합니다.
+        </p>
       </div>
 
       <form
@@ -117,12 +98,6 @@ export default function CopilotPage() {
           {loading ? "생성 중..." : "초안 생성하기"}
         </button>
       </form>
-
-      {modelUsed ? (
-        <p className="mb-3 text-xs font-semibold text-[var(--brand)]">
-          사용 모델: {modelUsed}
-        </p>
-      ) : null}
 
       {error ? (
         <div className="mb-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
