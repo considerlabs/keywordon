@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "KeywordOn Advisor",
+  "version": "0.1.0",
+  "description": "어떤 페이지에서든 KeywordOn 키워드 분석과 AI 초안을 바로 실행합니다.",
+  "action": {
+    "default_title": "KeywordOn",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["activeTab", "storage", "sidePanel"],
+  "host_permissions": ["https://*/*", "http://*/*"],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://search.naver.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"]
+    }
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

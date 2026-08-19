@@ -1,0 +1,51 @@
+body {
+  margin: 0;
+  width: 320px;
+  font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  background: #eef4f3;
+  color: #132326;
+  padding: 16px;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+header strong {
+  color: #0d7377;
+}
+label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+input {
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: white;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+.actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: #0d7377;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+button.ghost {
+  background: #132326;
+}
+.hint {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: #5f7277;
+}

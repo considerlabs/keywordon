@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>KeywordOn Sidepanel</title>
+    <link rel="stylesheet" href="popup.css" />
+    <style>
+      body {
+        width: auto;
+        min-height: 100vh;
+      }
+      iframe {
+        width: 100%;
+        height: calc(100vh - 120px);
+        border: 0;
+        border-radius: 16px;
+        background: white;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>KeywordOn</strong>
+      <span>Sidepanel</span>
+    </header>
+    <label>
+      키워드
+      <input id="keyword" placeholder="분석할 키워드" />
+    </label>
+    <div class="actions">
+      <button id="load">불러오기</button>
+    </div>
+    <iframe id="frame" title="KeywordOn"></iframe>
+    <script src="sidepanel.js"></script>
+  </body>
+</html>

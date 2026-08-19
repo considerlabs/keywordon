@@ -1,26 +1,70 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --canvas: #eef4f3;
+  --surface: #f7faf9;
+  --panel: #ffffff;
+  --ink: #132326;
+  --muted: #5f7277;
+  --line: #d5e1e0;
+  --brand: #0d7377;
+  --brand-ink: #08595c;
+  --brand-soft: #d7efef;
+  --accent: #e85d04;
+  --background: var(--canvas);
+  --foreground: var(--ink);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-body), sans-serif;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(18px, -12px, 0);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.7s ease-out both;
+}
+
+.animate-rise-delay {
+  animation: rise 0.8s ease-out 0.12s both;
+}
+
+.animate-drift {
+  animation: drift 8s ease-in-out infinite alternate;
+}
+
+.hero-grid {
+  background-image:
+    radial-gradient(circle at 18% 20%, rgba(13, 115, 119, 0.18), transparent 42%),
+    radial-gradient(circle at 82% 12%, rgba(232, 93, 4, 0.14), transparent 36%),
+    linear-gradient(rgba(19, 35, 38, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(19, 35, 38, 0.035) 1px, transparent 1px);
+  background-size: auto, auto, 28px 28px, 28px 28px;
 }
