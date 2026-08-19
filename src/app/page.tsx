@@ -14,14 +14,15 @@ export default function HomePage() {
         <div className="animate-drift pointer-events-none absolute -left-10 bottom-8 h-52 w-52 rounded-full bg-[var(--accent)]/15 blur-3xl" />
 
         <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-6xl flex-col justify-center px-5 py-16 md:py-20">
-          <p className="animate-rise mb-4 font-[family-name:var(--font-display)] text-5xl font-extrabold tracking-tight text-[var(--ink)] md:text-7xl">
-            Keyword<span className="text-[var(--brand)]">On</span>
+          <p className="animate-rise mb-3 font-[family-name:var(--font-display)] text-5xl font-extrabold tracking-tighter text-[var(--ink)] md:mb-4 md:text-7xl">
+            Keyword<span className="-ml-[0.02em] text-[var(--brand)]">On</span>
           </p>
-          <h1 className="animate-rise-delay max-w-3xl text-2xl font-semibold leading-snug tracking-tight text-[var(--ink)] md:text-4xl">
+          <h1 className="animate-rise-delay max-w-3xl text-2xl font-semibold leading-[1.28] tracking-tight text-[var(--ink)] md:text-4xl">
             키워드 검색량부터 기회지수까지,
-            <br className="hidden md:block" /> 한 번에 분석하는 인텔리전스
+            <br className="hidden md:block" />
+            한 번에 분석하는 인텔리전스
           </h1>
-          <p className="animate-rise-delay mt-4 max-w-2xl text-base leading-relaxed text-[var(--muted)] md:text-lg">
+          <p className="animate-rise-delay mt-5 max-w-2xl text-base leading-relaxed text-[var(--muted)] md:mt-6 md:text-lg">
             SEO, 콘텐츠 마케팅, 경쟁 분석을 하나의 플로우로. 네이버·구글 키워드를
             바로 조회하세요.
           </p>
