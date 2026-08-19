@@ -18,12 +18,29 @@ export default function ShopPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId, interval }),
       });
-      const payload = await response.json();
+
+      const contentType = response.headers.get("content-type") ?? "";
+      const raw = await response.text();
+      let payload: { error?: string; url?: string } = {};
+      if (contentType.includes("application/json")) {
+        payload = JSON.parse(raw) as { error?: string; url?: string };
+      } else {
+        throw new Error(
+          response.status === 401 || raw.includes("<!DOCTYPE")
+            ? "로그인이 필요합니다. 상단에서 로그인한 뒤 다시 시도해 주세요."
+            : "결제 서버 응답이 올바르지 않습니다. 잠시 후 다시 시도해 주세요.",
+        );
+      }
+
+      if (response.status === 401) {
+        window.location.href = `/sign-in?redirect_url=${encodeURIComponent("/shop")}`;
+        return;
+      }
       if (!response.ok) {
         throw new Error(payload.error ?? "결제 세션 생성 실패");
       }
       if (payload.url) {
-        window.location.href = payload.url as string;
+        window.location.href = payload.url;
         return;
       }
       throw new Error("결제 URL이 없습니다.");
