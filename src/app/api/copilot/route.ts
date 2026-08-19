@@ -21,11 +21,35 @@ function getGeminiApiKey() {
 
 export async function GET() {
   const key = getGeminiApiKey();
+  let liveTest: {
+    status: number;
+    ok: boolean;
+    preview: string;
+  } | null = null;
+
+  if (key) {
+    const res = await fetch(`${GEMINI_ENDPOINT}?key=${encodeURIComponent(key)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: "Reply with exactly: PONG" }] }],
+        generationConfig: { maxOutputTokens: 16 },
+      }),
+    });
+    const raw = await res.text();
+    liveTest = {
+      status: res.status,
+      ok: res.ok,
+      preview: raw.slice(0, 240),
+    };
+  }
+
   return NextResponse.json({
     model: "gemini-3.6-flash",
     endpoint: GEMINI_ENDPOINT,
     hasApiKey: Boolean(key),
     apiKeyPrefix: key ? key.slice(0, 6) : null,
+    liveTest,
   });
 }
 

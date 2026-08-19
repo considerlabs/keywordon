@@ -10,12 +10,14 @@ export default function CopilotPage() {
   const [output, setOutput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [modelUsed, setModelUsed] = useState("");
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
     setError("");
     setOutput("");
+    setModelUsed("");
 
     try {
       const response = await fetch("/api/copilot", {
@@ -24,25 +26,32 @@ export default function CopilotPage() {
         body: JSON.stringify({ keyword, tone, intent }),
       });
 
+      const responseModel = response.headers.get("X-KeywordOn-Model") ?? "";
+      setModelUsed(responseModel);
+
       if (!response.ok) {
         const contentType = response.headers.get("content-type") ?? "";
         if (contentType.includes("application/json")) {
           const payload = (await response.json()) as {
             error?: string;
             model?: string;
+            endpoint?: string;
           };
           throw new Error(
-            payload.model
-              ? `${payload.error ?? "AI 생성 실패"} (model: ${payload.model})`
-              : (payload.error ?? "AI 생성에 실패했습니다."),
+            [
+              payload.error ?? "AI 생성에 실패했습니다.",
+              payload.model ? `model=${payload.model}` : null,
+              payload.endpoint ? `endpoint=${payload.endpoint}` : null,
+            ]
+              .filter(Boolean)
+              .join(" | "),
           );
         }
         throw new Error("AI 생성에 실패했습니다.");
       }
 
-      // Non-stream plain text or streamed chunks
       const reader = response.body?.getReader();
-      if (!reader) throw new Error("스트림을 읽을 수 없습니다.");
+      if (!reader) throw new Error("응답을 읽을 수 없습니다.");
       const decoder = new TextDecoder();
       let text = "";
       while (true) {
@@ -108,6 +117,12 @@ export default function CopilotPage() {
           {loading ? "생성 중..." : "초안 생성하기"}
         </button>
       </form>
+
+      {modelUsed ? (
+        <p className="mb-3 text-xs font-semibold text-[var(--brand)]">
+          사용 모델: {modelUsed}
+        </p>
+      ) : null}
 
       {error ? (
         <div className="mb-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
