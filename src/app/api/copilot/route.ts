@@ -1,31 +1,111 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { gateway, streamText } from "ai";
 import { getAuthContext } from "@/lib/auth";
 import { assertFeature } from "@/lib/quota";
 import { incrementAiUsage } from "@/lib/db/users";
 import { resolveKeywordAnalysis } from "@/lib/providers/keyword-data";
 
-/** Google AI Studio / Generative Language API model id */
+/** Hardcoded — never use gemini-2.0-flash */
 const GEMINI_MODEL = "gemini-3.6-flash";
 
-function resolveCopilotModel() {
-  const apiKey = (
+function getGeminiApiKey() {
+  const key = (
     process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
     process.env.GEMINI_API_KEY ||
     process.env.GOOGLE_API_KEY ||
     ""
   ).trim();
+  return key || null;
+}
 
-  // Google AI Studio keys look like "AIza...". Other formats (e.g. "AQ.") are ignored
-  // so we don't accidentally hit a broken provider path that falls back to gemini-2.0-flash.
-  if (apiKey.startsWith("AIza")) {
-    const google = createGoogleGenerativeAI({ apiKey });
-    return google(GEMINI_MODEL);
+async function streamGeminiDraft(params: {
+  apiKey: string;
+  prompt: string;
+  system: string;
+}) {
+  const url = new URL(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:streamGenerateContent`,
+  );
+  url.searchParams.set("alt", "sse");
+  url.searchParams.set("key", params.apiKey);
+
+  const response = await fetch(url.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [{ text: params.system }],
+      },
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: params.prompt }],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 4096,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const raw = await response.text();
+    let message = raw;
+    try {
+      const parsed = JSON.parse(raw) as { error?: { message?: string } };
+      message = parsed.error?.message ?? raw;
+    } catch {
+      // keep raw
+    }
+    throw new Error(message);
   }
 
-  // Prefer Vercel AI Gateway (OIDC on Vercel, or AI_GATEWAY_API_KEY locally)
-  return gateway(`google/${GEMINI_MODEL}`);
+  if (!response.body) {
+    throw new Error("Gemini 응답 스트림이 비어 있습니다.");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      const { done, value } = await reader.read();
+      if (done) {
+        controller.close();
+        return;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const chunks = buffer.split("\n");
+      buffer = chunks.pop() ?? "";
+
+      for (const line of chunks) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+        const payload = trimmed.slice(5).trim();
+        if (!payload || payload === "[DONE]") continue;
+        try {
+          const json = JSON.parse(payload) as {
+            candidates?: Array<{
+              content?: { parts?: Array<{ text?: string }> };
+            }>;
+          };
+          const text = json.candidates?.[0]?.content?.parts
+            ?.map((part) => part.text ?? "")
+            .join("");
+          if (text) {
+            controller.enqueue(new TextEncoder().encode(text));
+          }
+        } catch {
+          // ignore malformed sse lines
+        }
+      }
+    },
+    cancel() {
+      reader.cancel().catch(() => undefined);
+    },
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -46,6 +126,27 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const apiKey = getGeminiApiKey();
+  if (!apiKey || apiKey === "undefined") {
+    return NextResponse.json(
+      {
+        error:
+          "Gemini API 키가 없습니다. Google AI Studio에서 AIza로 시작하는 키를 발급해 GOOGLE_GENERATIVE_AI_API_KEY로 등록해 주세요.",
+      },
+      { status: 503 },
+    );
+  }
+
+  if (!apiKey.startsWith("AIza")) {
+    return NextResponse.json(
+      {
+        error:
+          "등록된 키가 Google Gemini API 키 형식(AIza...)이 아닙니다. https://aistudio.google.com/apikey 에서 새 키를 발급해 주세요.",
+      },
+      { status: 503 },
+    );
+  }
+
   const body = (await request.json()) as {
     keyword?: string;
     tone?: string;
@@ -63,13 +164,9 @@ export async function POST(request: NextRequest) {
 
   await incrementAiUsage(authContext.userId);
 
-  try {
-    const model = resolveCopilotModel();
-    const result = streamText({
-      model,
-      system:
-        "당신은 한국어 SEO·콘텐츠 마케터입니다. 검색 의도를 반영한 완성도 높은 글을 작성하고, 과장 광고 표현은 피합니다.",
-      prompt: `키워드: ${keyword}
+  const system =
+    "당신은 한국어 SEO·콘텐츠 마케터입니다. 검색 의도를 반영한 완성도 높은 글을 작성하고, 과장 광고 표현은 피합니다.";
+  const prompt = `키워드: ${keyword}
 의도: ${intent}
 톤: ${tone}
 월간 검색량: ${data.monthlyVolume}
@@ -80,21 +177,25 @@ export async function POST(request: NextRequest) {
   .join(", ")}
 
 위 정보를 바탕으로 ${intent}용 한국어 초안을 작성하세요.
-구성: 제목 후보 3개, 서론, 본문(소제목 포함), 결론, SEO 메타 설명 1개.`,
-    });
+구성: 제목 후보 3개, 서론, 본문(소제목 포함), 결론, SEO 메타 설명 1개.`;
 
-    return result.toTextStreamResponse();
+  try {
+    const stream = await streamGeminiDraft({ apiKey, prompt, system });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
+        "X-KeywordOn-Model": GEMINI_MODEL,
+      },
+    });
   } catch (error) {
-    console.error("copilot error", error);
-    const message =
-      error instanceof Error
-        ? error.message
-        : "AI 초안 생성에 실패했습니다. Gemini API 키 또는 모델을 확인해 주세요.";
+    console.error("copilot gemini error", error);
     return NextResponse.json(
       {
-        error: message.includes("gemini-2.0")
-          ? "모델 설정을 갱신했습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요."
-          : message,
+        error:
+          error instanceof Error
+            ? error.message
+            : "AI 초안 생성에 실패했습니다.",
       },
       { status: 500 },
     );

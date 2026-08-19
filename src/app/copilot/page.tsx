@@ -55,9 +55,11 @@ export default function CopilotPage() {
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-[var(--ink)]">
           AI 글쓰기 어시스턴트
         </h1>
-        <p className="mt-2 text-[var(--muted)]">
-          키워드 분석 결과를 반영해 블로그·랜딩 초안을 생성합니다. 베이직 이상 플랜 필요.
-        </p>
+      <p className="mt-2 text-[var(--muted)]">
+        키워드 분석 결과를 반영해 블로그·랜딩 초안을 생성합니다. Gemini 3.6 Flash 사용.
+        Google AI Studio의 <code className="text-[var(--ink)]">AIza...</code> API 키가
+        서버에 등록되어 있어야 합니다.
+      </p>
       </div>
 
       <form
