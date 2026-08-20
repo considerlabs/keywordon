@@ -98,20 +98,25 @@ async function fetchNaverKeyword(keyword: string): Promise<KeywordAnalysis | nul
       };
     });
 
+  // Keyword Tool does not return bid CPC; derive a coarse estimate from click share + ad depth.
+  const clicks =
+    parseCount(exact.monthlyAvePcClkCnt) + parseCount(exact.monthlyAveMobileClkCnt);
+  const depth = Math.max(1, parseCount(exact.plAvgDepth));
+  const estimatedCpc = Math.max(
+    50,
+    Math.round((clicks / Math.max(1, monthlyVolume)) * 1200 * depth),
+  );
+
   return {
     ...base,
     monthlyVolume,
     pcVolume,
     mobileVolume,
-    cpc: Math.round(
-      ((parseCount(exact.monthlyAvePcClkCnt) + parseCount(exact.monthlyAveMobileClkCnt)) /
-        Math.max(1, monthlyVolume)) *
-        1000,
-    ),
+    cpc: estimatedCpc,
     adCompetition: competitionMap[exact.compIdx ?? ""] ?? base.adCompetition,
     relatedSerp: related.slice(0, 10),
     relatedInternal: related.slice(0, 12).map((item) => ({ ...item, source: "internal" as const })),
-    summary: `'${keyword}' 네이버 실검색량 기준 월간 약 ${monthlyVolume.toLocaleString("ko-KR")}회입니다. (SearchAd API)`,
+    summary: `'${keyword}' 네이버 실검색량 기준 월간 약 ${monthlyVolume.toLocaleString("ko-KR")}회입니다. (SearchAd API · CPC는 입찰가가 아닌 클릭·노출 깊이 기반 추정값)`,
     deviceRatio: {
       pc: monthlyVolume ? Number(((pcVolume / monthlyVolume) * 100).toFixed(1)) : 0,
       mobile: monthlyVolume ? Number(((mobileVolume / monthlyVolume) * 100).toFixed(1)) : 0,

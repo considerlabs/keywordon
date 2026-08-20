@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db, hasDatabase } from "./index";
 import { users, type UserRow } from "./schema";
 import { getPlan, type PlanId } from "../plans";
@@ -34,7 +34,14 @@ function resetIfNeeded(user: MemoryUser | UserRow) {
 export async function ensureUser(
   clerkId: string,
   email?: string | null,
-): Promise<{ id: number; plan: PlanId; clerkId: string; email: string | null; aiUsedMonth: number; googleUsedMonth: number }> {
+): Promise<{
+  id: number;
+  plan: PlanId;
+  clerkId: string;
+  email: string | null;
+  aiUsedMonth: number;
+  googleUsedMonth: number;
+}> {
   if (!hasDatabase || !db) {
     let user = memoryUsers.get(clerkId);
     if (!user) {
@@ -122,17 +129,69 @@ export async function setUserPlan(clerkId: string, plan: PlanId) {
     .where(eq(users.clerkId, clerkId));
 }
 
-export async function incrementAiUsage(clerkId: string) {
+/** Atomically consume one AI credit if under monthly limit. */
+export async function tryConsumeAiUsage(clerkId: string, limit: number) {
   const user = await ensureUser(clerkId);
+  if (limit <= 0) return { ok: false as const, used: user.aiUsedMonth };
+
   if (!hasDatabase || !db) {
     const mem = memoryUsers.get(clerkId);
-    if (mem) mem.aiUsedMonth += 1;
-    return;
+    if (!mem || mem.aiUsedMonth >= limit) {
+      return { ok: false as const, used: mem?.aiUsedMonth ?? user.aiUsedMonth };
+    }
+    mem.aiUsedMonth += 1;
+    return { ok: true as const, used: mem.aiUsedMonth };
   }
-  await db
+
+  const updated = await db
     .update(users)
-    .set({ aiUsedMonth: user.aiUsedMonth + 1, updatedAt: new Date() })
-    .where(eq(users.clerkId, clerkId));
+    .set({
+      aiUsedMonth: sql`${users.aiUsedMonth} + 1`,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(users.clerkId, clerkId), sql`${users.aiUsedMonth} < ${limit}`))
+    .returning({ aiUsedMonth: users.aiUsedMonth });
+
+  if (!updated[0]) {
+    const fresh = await ensureUser(clerkId);
+    return { ok: false as const, used: fresh.aiUsedMonth };
+  }
+  return { ok: true as const, used: updated[0].aiUsedMonth };
+}
+
+/** Atomically consume one Google analysis credit if under monthly limit. */
+export async function tryConsumeGoogleUsage(clerkId: string, limit: number) {
+  const user = await ensureUser(clerkId);
+  if (limit <= 0) return { ok: false as const, used: user.googleUsedMonth };
+
+  if (!hasDatabase || !db) {
+    const mem = memoryUsers.get(clerkId);
+    if (!mem || mem.googleUsedMonth >= limit) {
+      return { ok: false as const, used: mem?.googleUsedMonth ?? user.googleUsedMonth };
+    }
+    mem.googleUsedMonth += 1;
+    return { ok: true as const, used: mem.googleUsedMonth };
+  }
+
+  const updated = await db
+    .update(users)
+    .set({
+      googleUsedMonth: sql`${users.googleUsedMonth} + 1`,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(users.clerkId, clerkId), sql`${users.googleUsedMonth} < ${limit}`))
+    .returning({ googleUsedMonth: users.googleUsedMonth });
+
+  if (!updated[0]) {
+    const fresh = await ensureUser(clerkId);
+    return { ok: false as const, used: fresh.googleUsedMonth };
+  }
+  return { ok: true as const, used: updated[0].googleUsedMonth };
+}
+
+/** @deprecated Prefer tryConsumeAiUsage for race-safe increments */
+export async function incrementAiUsage(clerkId: string) {
+  await tryConsumeAiUsage(clerkId, Number.MAX_SAFE_INTEGER);
 }
 
 export async function getUserPlanContext(clerkId: string | null, email?: string | null) {

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { PAID_PLANS, type PlanId } from "@/lib/plans";
 import { getStripe, planFromStripePrice } from "@/lib/stripe";
 import { setUserPlan } from "@/lib/db/users";
+
+function isPaidPlanId(value: string | undefined | null): value is PlanId {
+  return Boolean(value && (PAID_PLANS as string[]).includes(value));
+}
 
 export async function POST(request: NextRequest) {
   const stripe = getStripe();
@@ -28,9 +33,9 @@ export async function POST(request: NextRequest) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const clerkId = session.metadata?.clerkId;
-    const planId = session.metadata?.planId;
-    if (clerkId && planId) {
-      await setUserPlan(clerkId, planId as "basic" | "super" | "enterprise");
+    const metaPlan = session.metadata?.planId;
+    if (clerkId && isPaidPlanId(metaPlan)) {
+      await setUserPlan(clerkId, metaPlan);
     }
   }
 
@@ -39,7 +44,7 @@ export async function POST(request: NextRequest) {
     const priceId = subscription.items.data[0]?.price.id;
     const planId = planFromStripePrice(priceId);
     const clerkId = subscription.metadata?.clerkId;
-    if (clerkId && planId) {
+    if (clerkId && planId && isPaidPlanId(planId)) {
       await setUserPlan(clerkId, planId);
     }
   }

@@ -2,6 +2,7 @@ import { AnalysisDashboard, type AnalysisViewModel } from "@/components/analysis
 import { KeywordSearchForm } from "@/components/keyword-search-form";
 import { getAuthContext } from "@/lib/auth";
 import { applyPlanLimits, checkNaverRateLimit } from "@/lib/quota";
+import { tryConsumeGoogleUsage } from "@/lib/db/users";
 import { resolveKeywordAnalysis } from "@/lib/providers/keyword-data";
 import type { Engine } from "@/lib/keyword-engine";
 
@@ -19,11 +20,30 @@ export default async function AnalyzePage({ searchParams }: AnalyzePageProps) {
   let error = "";
 
   if (keyword) {
-    if (engine === "google" && authContext.plan.limits.googleMonthly <= 0) {
-      error = "구글 키워드 분석은 베이직 이상 플랜에서 이용할 수 있습니다.";
+    if (engine === "google") {
+      if (!authContext.userId) {
+        error = "구글 키워드 분석은 로그인 후 베이직 이상 플랜에서 이용할 수 있습니다.";
+      } else {
+        const consumed = await tryConsumeGoogleUsage(
+          authContext.userId,
+          authContext.plan.limits.googleMonthly,
+        );
+        if (!consumed.ok) {
+          error =
+            authContext.plan.limits.googleMonthly <= 0
+              ? "구글 키워드 분석은 베이직 이상 플랜에서 이용할 수 있습니다."
+              : `이번 달 구글 분석 한도(${authContext.plan.limits.googleMonthly}회)를 모두 사용했습니다.`;
+        } else {
+          const resolved = await resolveKeywordAnalysis(keyword, engine);
+          data = {
+            ...applyPlanLimits(resolved.data, authContext.plan),
+            dataSource: resolved.source,
+          };
+        }
+      }
     } else {
-      const rate = checkNaverRateLimit(authContext.userId ?? "guest-page", authContext.plan);
-      if (engine === "naver" && !rate.ok) {
+      const rate = await checkNaverRateLimit(authContext.userId ?? "guest-page", authContext.plan);
+      if (!rate.ok) {
         error = rate.error;
       } else {
         const resolved = await resolveKeywordAnalysis(keyword, engine);

@@ -2,14 +2,23 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import type { RelatedKeyword } from "@/lib/keyword-engine";
+import type { AdCompetition } from "@/lib/keyword-engine";
 import { formatNumber } from "@/lib/utils";
+
+type DiscoverItem = {
+  keyword: string;
+  monthlyVolume: number;
+  opportunityScore: number | null;
+  competition: AdCompetition;
+  source: "internal" | "serp";
+};
 
 export default function DiscoverPage() {
   const [seed, setSeed] = useState("마케팅");
   const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState<RelatedKeyword[]>([]);
+  const [items, setItems] = useState<DiscoverItem[]>([]);
   const [error, setError] = useState("");
+  const [opportunityLocked, setOpportunityLocked] = useState(false);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -21,7 +30,8 @@ export default function DiscoverPage() {
       if (!response.ok) {
         throw new Error(payload.error ?? "발굴에 실패했습니다.");
       }
-      setItems(payload.items as RelatedKeyword[]);
+      setItems(payload.items as DiscoverItem[]);
+      setOpportunityLocked(Boolean(payload.locked?.opportunityScore));
     } catch (err) {
       setError(err instanceof Error ? err.message : "발굴에 실패했습니다.");
     } finally {
@@ -39,7 +49,7 @@ export default function DiscoverPage() {
           키워드 발굴
         </h1>
         <p className="mt-2 text-[var(--muted)]">
-          시드 키워드를 기준으로 기회지수가 높은 확장 키워드를 찾아줍니다.
+          시드 키워드를 기준으로 확장 키워드를 찾아줍니다. 기회지수는 플랜에 따라 잠길 수 있습니다.
         </p>
       </div>
 
@@ -77,7 +87,9 @@ export default function DiscoverPage() {
                   {item.source === "internal" ? "KeywordOn" : "SERP"}
                 </span>
                 <span className="text-xs font-semibold text-[var(--muted)]">
-                  기회 {item.opportunityScore}
+                  {item.opportunityScore == null || opportunityLocked
+                    ? "기회 잠금"
+                    : `기회 ${item.opportunityScore}`}
                 </span>
               </div>
               <p className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--ink)]">

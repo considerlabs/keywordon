@@ -26,6 +26,7 @@
 | Google analyze | ✗ | ✗ | limited | higher | highest |
 | Opportunity / CPC / issue / content volume | ✗ | ✗ | ✓ | ✓ | ✓ |
 | Bulk / CSV | ✗ | small bulk, no CSV | ✓ | ✓ | ✓ |
+| Keyword discover | ✗ (401) | ✓ (opportunity locked) | ✓ | ✓ | ✓ |
 | Blog analysis | ✗ | ✓ | ✓ | ✓ | ✓ |
 | Site diagnosis | ✗ | ✗ | ✓ | ✓ | ✓ |
 | Copilot AI | ✗ | ✓ (20/mo) | ✓ | ✓ | ✓ |

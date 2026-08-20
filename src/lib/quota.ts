@@ -1,21 +1,64 @@
+import { and, eq, gte, sql } from "drizzle-orm";
+import { db, hasDatabase } from "./db/index";
+import { usageEvents } from "./db/schema";
 import { getPlan, type PlanDefinition, type PlanId } from "./plans";
-import type { KeywordAnalysis } from "./keyword-engine";
+import type { KeywordAnalysis, RelatedKeyword } from "./keyword-engine";
 import type { AnalysisViewModel } from "./types";
 
 const minuteBuckets = new Map<string, { count: number; resetAt: number }>();
 
-export function checkNaverRateLimit(actorId: string, plan: PlanDefinition) {
-  const key = `naver:${actorId}`;
+function actorKey(actorId: string) {
+  return `naver:${actorId}`;
+}
+
+/** Prefer DB-backed RPM when Neon is available so multi-instance deploys share the counter. */
+export async function checkNaverRateLimit(actorId: string, plan: PlanDefinition) {
+  const limit = plan.limits.naverPerMinute;
   const now = Date.now();
+  const windowStart = new Date(now - 60_000);
+
+  if (hasDatabase && db) {
+    try {
+      await db.insert(usageEvents).values({
+        userId: null,
+        action: "naver_rpm",
+        meta: { actor: actorId },
+      });
+
+      const rows = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(usageEvents)
+        .where(
+          and(
+            eq(usageEvents.action, "naver_rpm"),
+            gte(usageEvents.createdAt, windowStart),
+            sql`${usageEvents.meta}->>'actor' = ${actorId}`,
+          ),
+        );
+
+      const count = Number(rows[0]?.count ?? 0);
+      if (count > limit) {
+        return {
+          ok: false as const,
+          error: `분당 분석 한도(${limit}회)를 초과했습니다. ${plan.name} 플랜을 업그레이드하세요.`,
+        };
+      }
+      return { ok: true as const };
+    } catch (error) {
+      console.error("DB rate limit failed, falling back to memory", error);
+    }
+  }
+
+  const key = actorKey(actorId);
   const bucket = minuteBuckets.get(key);
   if (!bucket || bucket.resetAt < now) {
     minuteBuckets.set(key, { count: 1, resetAt: now + 60_000 });
     return { ok: true as const };
   }
-  if (bucket.count >= plan.limits.naverPerMinute) {
+  if (bucket.count >= limit) {
     return {
       ok: false as const,
-      error: `분당 분석 한도(${plan.limits.naverPerMinute}회)를 초과했습니다. ${plan.name} 플랜을 업그레이드하세요.`,
+      error: `분당 분석 한도(${limit}회)를 초과했습니다. ${plan.name} 플랜을 업그레이드하세요.`,
     };
   }
   bucket.count += 1;
@@ -44,6 +87,20 @@ export function applyPlanLimits(
     },
     planName: plan.name,
   };
+}
+
+export function applyDiscoverLimits(
+  items: RelatedKeyword[],
+  plan: PlanDefinition,
+): Array<Omit<RelatedKeyword, "opportunityScore"> & { opportunityScore: number | null }> {
+  const capped = items.slice(
+    0,
+    Math.max(plan.limits.relatedInternal, plan.limits.relatedSerp, 10),
+  );
+  return capped.map((item) => ({
+    ...item,
+    opportunityScore: plan.limits.opportunityScore ? item.opportunityScore : null,
+  }));
 }
 
 export function assertBulkAllowed(count: number, plan: PlanDefinition) {

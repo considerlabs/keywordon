@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { assertFeature } from "@/lib/quota";
-import { incrementAiUsage } from "@/lib/db/users";
+import { tryConsumeAiUsage } from "@/lib/db/users";
 import { resolveKeywordAnalysis } from "@/lib/providers/keyword-data";
 
 // Absolute URL — do not interpolate, do not use gemini-2.0-flash
@@ -19,37 +19,11 @@ function getGeminiApiKey() {
   return key;
 }
 
+/** Public readiness probe only — no live Gemini calls, no key material. */
 export async function GET() {
-  const key = getGeminiApiKey();
-  let liveTest: {
-    status: number;
-    ok: boolean;
-    preview: string;
-  } | null = null;
-
-  if (key) {
-    const res = await fetch(`${GEMINI_ENDPOINT}?key=${encodeURIComponent(key)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: "Reply with exactly: PONG" }] }],
-        generationConfig: { maxOutputTokens: 16 },
-      }),
-    });
-    const raw = await res.text();
-    liveTest = {
-      status: res.status,
-      ok: res.ok,
-      preview: raw.slice(0, 240),
-    };
-  }
-
   return NextResponse.json({
     model: "gemini-3.6-flash",
-    endpoint: GEMINI_ENDPOINT,
-    hasApiKey: Boolean(key),
-    apiKeyPrefix: key ? key.slice(0, 6) : null,
-    liveTest,
+    hasApiKey: Boolean(getGeminiApiKey()),
   });
 }
 
@@ -64,9 +38,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
-  if (authContext.user.aiUsedMonth >= authContext.plan.limits.aiMonthly) {
+  const consumed = await tryConsumeAiUsage(
+    authContext.userId,
+    authContext.plan.limits.aiMonthly,
+  );
+  if (!consumed.ok) {
     return NextResponse.json(
-      { error: `이번 달 AI 생성 한도(${authContext.plan.limits.aiMonthly}회)를 모두 사용했습니다.` },
+      {
+        error: `이번 달 AI 생성 한도(${authContext.plan.limits.aiMonthly}회)를 모두 사용했습니다.`,
+      },
       { status: 429 },
     );
   }
@@ -151,9 +131,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  await incrementAiUsage(authContext.userId);
-
-  // Return plain text so existing client stream reader still works
   return new Response(text, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",

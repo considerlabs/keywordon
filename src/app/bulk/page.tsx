@@ -2,14 +2,16 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
-import type { Engine, KeywordAnalysis } from "@/lib/keyword-engine";
+import type { Engine } from "@/lib/keyword-engine";
+import type { AnalysisViewModel } from "@/lib/types";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 
 export default function BulkPage() {
   const [text, setText] = useState("캠핑 용품\n다이어트 식단\n카페 창업\n노트북 추천");
   const [engine, setEngine] = useState<Engine>("naver");
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<KeywordAnalysis[]>([]);
+  const [results, setResults] = useState<AnalysisViewModel[]>([]);
+  const [csvExport, setCsvExport] = useState(false);
   const [error, setError] = useState("");
 
   const count = useMemo(
@@ -41,7 +43,8 @@ export default function BulkPage() {
       if (!response.ok) {
         throw new Error(payload.error ?? "대량 조회에 실패했습니다.");
       }
-      setResults(payload.results as KeywordAnalysis[]);
+      setResults(payload.results as AnalysisViewModel[]);
+      setCsvExport(Boolean(payload.csvExport));
     } catch (err) {
       setError(err instanceof Error ? err.message : "대량 조회에 실패했습니다.");
     } finally {
@@ -50,6 +53,7 @@ export default function BulkPage() {
   }
 
   function downloadCsv() {
+    if (!csvExport) return;
     const rows = [
       ["키워드", "엔진", "월간검색량", "PC", "Mobile", "CPC", "광고경쟁", "기회지수", "이슈성"],
       ...results.map((item) => [
@@ -58,10 +62,10 @@ export default function BulkPage() {
         item.monthlyVolume,
         item.pcVolume,
         item.mobileVolume,
-        item.cpc,
-        item.adCompetition,
-        item.opportunityScore,
-        item.issueLevel,
+        item.cpc ?? "",
+        item.adCompetition ?? "",
+        item.opportunityScore ?? "",
+        item.issueLevel ?? "",
       ]),
     ];
     const csv = rows.map((row) => row.join(",")).join("\n");
@@ -127,7 +131,7 @@ export default function BulkPage() {
           >
             {loading ? "분석 중..." : "대량 분석하기"}
           </button>
-          {results.length > 0 ? (
+          {results.length > 0 && csvExport ? (
             <button
               type="button"
               onClick={downloadCsv}
@@ -135,6 +139,11 @@ export default function BulkPage() {
             >
               CSV 다운로드
             </button>
+          ) : null}
+          {results.length > 0 && !csvExport ? (
+            <p className="self-center text-sm text-[var(--muted)]">
+              CSV 내보내기는 베이직 이상 플랜에서 이용할 수 있습니다.
+            </p>
           ) : null}
         </div>
       </form>
@@ -165,12 +174,14 @@ export default function BulkPage() {
                       </Link>
                     </td>
                     <td className="px-4 py-3">{formatNumber(item.monthlyVolume)}</td>
-                    <td className="px-4 py-3">{formatCurrency(item.cpc)}</td>
-                    <td className="px-4 py-3">{item.adCompetition}</td>
-                    <td className="px-4 py-3 font-semibold text-[var(--brand-ink)]">
-                      {item.opportunityScore}
+                    <td className="px-4 py-3">
+                      {item.cpc == null ? "잠금" : formatCurrency(item.cpc)}
                     </td>
-                    <td className="px-4 py-3">{item.issueLevel}</td>
+                    <td className="px-4 py-3">{item.adCompetition ?? "잠금"}</td>
+                    <td className="px-4 py-3 font-semibold text-[var(--brand-ink)]">
+                      {item.opportunityScore ?? "잠금"}
+                    </td>
+                    <td className="px-4 py-3">{item.issueLevel ?? "잠금"}</td>
                   </tr>
                 ))}
               </tbody>
