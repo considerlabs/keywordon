@@ -1,23 +1,7 @@
 import { hashString, seededRandom } from "@/lib/utils";
+import type { BlogRankingEntry, BlogRankingFilters } from "./types";
 
-export type BlogRankingEntry = {
-  rank: number;
-  blogName: string;
-  blogUrl: string;
-  platform: "naver" | "tistory";
-  postTitle: string;
-  estimatedViews: number;
-  keywordMatch: number;
-  change: "up" | "down" | "same" | "new";
-  delta: number;
-};
-
-export type BlogRankingFilters = {
-  keyword: string;
-  category?: string;
-  platform?: "all" | "naver" | "tistory";
-  topN?: number;
-};
+export type { BlogRankingEntry, BlogRankingFilters } from "./types";
 
 const CATEGORIES = [
   "생활/건강",
@@ -49,6 +33,7 @@ export function getRankingCategories(): string[] {
   return [...CATEGORIES];
 }
 
+/** @deprecated Prefer live `/api/ranking` — kept for tests/fallback only. */
 export function buildBlogRanking(filters: BlogRankingFilters): BlogRankingEntry[] {
   const keyword = filters.keyword.trim() || "블로그 마케팅";
   const topN = Math.min(50, Math.max(10, filters.topN ?? 20));
