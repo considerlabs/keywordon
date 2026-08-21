@@ -19,6 +19,7 @@ export interface PlanDefinition {
     siteDiagnosis: number;
     aiMonthly: number;
     automationIdeasDaily: number;
+    shortformMonthly: number;
     dataYears: number;
     csvExport: boolean;
     opportunityScore: boolean;
@@ -54,6 +55,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       siteDiagnosis: 0,
       aiMonthly: 0,
       automationIdeasDaily: 0,
+      shortformMonthly: 0,
       dataYears: 1,
       csvExport: false,
       opportunityScore: false,
@@ -83,6 +85,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       siteDiagnosis: 0,
       aiMonthly: 20,
       automationIdeasDaily: 3,
+      shortformMonthly: 0,
       dataYears: 1,
       csvExport: false,
       opportunityScore: false,
@@ -112,6 +115,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       siteDiagnosis: 1,
       aiMonthly: 100,
       automationIdeasDaily: 7,
+      shortformMonthly: 5,
       dataYears: 2,
       csvExport: true,
       opportunityScore: true,
@@ -145,6 +149,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       siteDiagnosis: 5,
       aiMonthly: 250,
       automationIdeasDaily: 15,
+      shortformMonthly: 15,
       dataYears: 3,
       csvExport: true,
       opportunityScore: true,
@@ -178,6 +183,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       siteDiagnosis: 10,
       aiMonthly: 500,
       automationIdeasDaily: 30,
+      shortformMonthly: 40,
       dataYears: 5,
       csvExport: true,
       opportunityScore: true,

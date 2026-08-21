@@ -85,7 +85,20 @@ export const automationDrafts = pgTable("automation_drafts", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const shortformProjects = pgTable("shortform_projects", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  sourceUrl: text("source_url"),
+  title: text("title").notNull().default(""),
+  script: jsonb("script"),
+  status: text("status").notNull().default("draft"),
+  meta: jsonb("meta"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export type UserRow = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type AutomationIdeaRow = typeof automationIdeas.$inferSelect;
 export type AutomationDraftRow = typeof automationDrafts.$inferSelect;
+export type ShortformProjectRow = typeof shortformProjects.$inferSelect;
