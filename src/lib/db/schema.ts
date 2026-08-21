@@ -61,5 +61,31 @@ export const usageEvents = pgTable("usage_events", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const automationIdeas = pgTable("automation_ideas", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  source: text("source").notNull().default("manual"),
+  title: text("title").notNull(),
+  keyword: text("keyword"),
+  monthlyVolume: integer("monthly_volume"),
+  meta: jsonb("meta"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const automationDrafts = pgTable("automation_drafts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  ideaId: integer("idea_id"),
+  title: text("title").notNull().default(""),
+  content: text("content").notNull().default(""),
+  status: text("status").notNull().default("draft"),
+  exportedAt: timestamp("exported_at"),
+  meta: jsonb("meta"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export type UserRow = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type AutomationIdeaRow = typeof automationIdeas.$inferSelect;
+export type AutomationDraftRow = typeof automationDrafts.$inferSelect;

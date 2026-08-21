@@ -18,6 +18,7 @@ export interface PlanDefinition {
     honeyBoxMax: number;
     siteDiagnosis: number;
     aiMonthly: number;
+    automationIdeasDaily: number;
     dataYears: number;
     csvExport: boolean;
     opportunityScore: boolean;
@@ -52,6 +53,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       honeyBoxMax: 0,
       siteDiagnosis: 0,
       aiMonthly: 0,
+      automationIdeasDaily: 0,
       dataYears: 1,
       csvExport: false,
       opportunityScore: false,
@@ -80,6 +82,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       honeyBoxMax: 10,
       siteDiagnosis: 0,
       aiMonthly: 20,
+      automationIdeasDaily: 3,
       dataYears: 1,
       csvExport: false,
       opportunityScore: false,
@@ -108,6 +111,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       honeyBoxMax: 30,
       siteDiagnosis: 1,
       aiMonthly: 100,
+      automationIdeasDaily: 7,
       dataYears: 2,
       csvExport: true,
       opportunityScore: true,
@@ -140,6 +144,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       honeyBoxMax: 90,
       siteDiagnosis: 5,
       aiMonthly: 250,
+      automationIdeasDaily: 15,
       dataYears: 3,
       csvExport: true,
       opportunityScore: true,
@@ -172,6 +177,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       honeyBoxMax: 180,
       siteDiagnosis: 10,
       aiMonthly: 500,
+      automationIdeasDaily: 30,
       dataYears: 5,
       csvExport: true,
       opportunityScore: true,
