@@ -1,4 +1,5 @@
 import { AnalysisDashboard, type AnalysisViewModel } from "@/components/analysis-dashboard";
+import { CreatorSubnav } from "@/components/creator-subnav";
 import { KeywordSearchForm } from "@/components/keyword-search-form";
 import { getAuthContext } from "@/lib/auth";
 import { applyPlanLimits, checkNaverRateLimit } from "@/lib/quota";
@@ -56,7 +57,9 @@ export default async function AnalyzePage({ searchParams }: AnalyzePageProps) {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-10">
+    <>
+      <CreatorSubnav />
+      <div className="mx-auto max-w-6xl px-5 py-10">
       <div className="mb-8 max-w-2xl">
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
           Keyword Analysis
@@ -94,6 +97,7 @@ export default async function AnalyzePage({ searchParams }: AnalyzePageProps) {
           </p>
         </div>
       ) : null}
-    </div>
+      </div>
+    </>
   );
 }

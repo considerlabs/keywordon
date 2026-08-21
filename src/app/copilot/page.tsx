@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { CreatorSubnav } from "@/components/creator-subnav";
 
 export default function CopilotPage() {
   const [keyword, setKeyword] = useState("캠핑 용품");
@@ -55,7 +56,9 @@ export default function CopilotPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-10">
+    <>
+      <CreatorSubnav />
+      <div className="mx-auto max-w-6xl px-5 py-10">
       <div className="mb-8 max-w-2xl">
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
           Copilot AI
@@ -111,6 +114,7 @@ export default function CopilotPage() {
       <div className="min-h-80 whitespace-pre-wrap rounded-3xl bg-[var(--panel)] p-6 text-[15px] leading-relaxed text-[var(--ink)] ring-1 ring-black/5">
         {output || "생성된 글이 여기에 표시됩니다."}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

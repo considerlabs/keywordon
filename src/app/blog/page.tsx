@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { CreatorSubnav } from "@/components/creator-subnav";
 import { formatNumber } from "@/lib/utils";
 
 interface BlogReport {
@@ -48,7 +49,9 @@ export default function BlogPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-10">
+    <>
+      <CreatorSubnav />
+      <div className="mx-auto max-w-6xl px-5 py-10">
       <div className="mb-8 max-w-2xl">
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
           Blog Analysis
@@ -129,6 +132,7 @@ export default function BlogPage() {
           </section>
         </div>
       ) : null}
-    </div>
+      </div>
+    </>
   );
 }
