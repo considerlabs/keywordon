@@ -64,8 +64,10 @@ export default function AdminSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold">설정</h1>
-        <p className="mt-2 text-[var(--muted)]">
+        <h1 className="font-[family-name:var(--font-display)] text-2xl font-extrabold tracking-tight">
+          설정
+        </h1>
+        <p className="mt-1 text-sm text-[var(--muted)]">
           API 키·시크릿을 DB에 암호화 저장합니다. 저장 후 평문 전체는 다시 볼 수 없습니다.
         </p>
         {note ? <p className="mt-2 text-sm text-amber-800">{note}</p> : null}
@@ -82,14 +84,12 @@ export default function AdminSettingsPage() {
         {settings.map((row) => (
           <div
             key={row.key}
-            className="rounded-2xl bg-[var(--panel)] p-4 ring-1 ring-black/5"
+            className="rounded-xl border border-[var(--line)] bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
           >
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <code className="text-sm font-semibold">{row.key}</code>
               <span className="text-xs text-[var(--muted)]">
-                {row.configured
-                  ? `${row.source} · ${row.preview ?? "****"}`
-                  : "미설정"}
+                {row.configured ? `${row.source} · ${row.preview ?? "****"}` : "미설정"}
               </span>
             </div>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -101,13 +101,13 @@ export default function AdminSettingsPage() {
                 onChange={(e) =>
                   setDrafts((prev) => ({ ...prev, [row.key]: e.target.value }))
                 }
-                className="min-w-0 flex-1 rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm"
+                className="h-9 min-w-0 flex-1 rounded-lg border border-[var(--line)] bg-white px-3 text-sm outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
               />
               <button
                 type="button"
                 disabled={!encryptionReady || busyKey === row.key}
                 onClick={() => void save(row.key, drafts[row.key] ?? "")}
-                className="rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                className="h-9 rounded-lg bg-[var(--brand)] px-4 text-sm font-semibold text-white disabled:opacity-50"
               >
                 저장
               </button>
@@ -115,7 +115,7 @@ export default function AdminSettingsPage() {
                 type="button"
                 disabled={!encryptionReady || busyKey === row.key || row.source !== "db"}
                 onClick={() => void save(row.key, "")}
-                className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[var(--muted)] ring-1 ring-black/10 disabled:opacity-40"
+                className="h-9 rounded-lg border border-[var(--line)] bg-white px-4 text-sm font-semibold text-[var(--muted)] disabled:opacity-40"
               >
                 DB 삭제
               </button>
