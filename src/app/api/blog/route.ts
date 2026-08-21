@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = (await request.json()) as { url?: string };
-    const report = analyzeBlog(body.url ?? "");
+    const report = await analyzeBlog(body.url ?? "");
     return NextResponse.json(report);
   } catch (error) {
     return NextResponse.json(

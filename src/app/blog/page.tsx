@@ -19,7 +19,7 @@ interface BlogReport {
     consistencyScore: number;
     overallScore: number;
   };
-  topPosts: { title: string; views: number; publishedAt: string }[];
+  topPosts: { title: string; views?: number; publishedAt: string; link?: string }[];
   recommendations: string[];
 }
 
@@ -60,7 +60,7 @@ export default function BlogPage() {
         </p>
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold">블로그 분석</h1>
         <p className="mt-2 text-[var(--muted)]">
-          네이버 블로그·티스토리 URL로 발행 리듬, 키워드 지수, 개선 포인트를 확인합니다.
+          네이버 블로그·티스토리 RSS로 최근 글·발행 리듬·주제 집중도를 분석합니다.
         </p>
       </div>
 
@@ -101,8 +101,8 @@ export default function BlogPage() {
             <p className="mt-2 text-[var(--muted)]">{report.summary}</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {[
-                ["발행 글", report.metrics.postCount],
-                ["월 발행", report.metrics.monthlyPosts],
+                ["RSS 최근 글", report.metrics.postCount],
+                ["최근 30일 발행", report.metrics.monthlyPosts],
                 ["추정 방문자", formatNumber(report.metrics.estimatedMonthlyVisitors)],
               ].map(([label, value]) => (
                 <div key={String(label)} className="rounded-2xl bg-[var(--canvas)] p-4">
@@ -115,12 +115,15 @@ export default function BlogPage() {
 
           <section className="grid gap-6 lg:grid-cols-2">
             <div className="rounded-3xl bg-[var(--panel)] p-6 ring-1 ring-black/5">
-              <h3 className="mb-4 font-bold">인기 포스팅</h3>
+              <h3 className="mb-4 font-bold">최근 포스팅</h3>
               <ul className="space-y-3">
                 {report.topPosts.map((post) => (
-                  <li key={post.title} className="flex justify-between gap-3 text-sm">
+                  <li
+                    key={`${post.title}-${post.publishedAt}`}
+                    className="flex justify-between gap-3 text-sm"
+                  >
                     <span>{post.title}</span>
-                    <span className="text-[var(--muted)]">{formatNumber(post.views)}</span>
+                    <span className="shrink-0 text-[var(--muted)]">{post.publishedAt}</span>
                   </li>
                 ))}
               </ul>

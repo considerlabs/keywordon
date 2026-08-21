@@ -132,10 +132,12 @@ async function fetchOnce(url: URL): Promise<Response> {
   });
 }
 
-/** Fetch HTML from an allowlisted URL with one manual redirect hop. */
-export async function fetchAllowedUrl(raw: string): Promise<{ url: URL; text: string }> {
+async function fetchAllowlisted(
+  raw: string,
+  options?: { rewriteNaverPost?: boolean },
+): Promise<{ url: URL; body: string }> {
   const initial = assertAllowedUrl(raw);
-  const target = resolveFetchUrl(initial);
+  const target = options?.rewriteNaverPost === false ? initial : resolveFetchUrl(initial);
   let response = await fetchOnce(target);
 
   if (response.status >= 300 && response.status < 400) {
@@ -144,13 +146,26 @@ export async function fetchAllowedUrl(raw: string): Promise<{ url: URL; text: st
       throw new SsrfError("리다이렉트 위치를 확인할 수 없습니다.");
     }
     const next = assertAllowedUrl(new URL(location, target).toString());
-    response = await fetchOnce(resolveFetchUrl(next));
+    const hop =
+      options?.rewriteNaverPost === false ? next : resolveFetchUrl(next);
+    response = await fetchOnce(hop);
   }
 
   if (!response.ok) {
     throw new SsrfError(`페이지를 불러오지 못했습니다. (${response.status})`);
   }
 
-  const html = await response.text();
-  return { url: initial, text: extractBlogText(html) };
+  return { url: initial, body: await response.text() };
+}
+
+/** Fetch HTML from an allowlisted URL with one manual redirect hop. */
+export async function fetchAllowedUrl(raw: string): Promise<{ url: URL; text: string }> {
+  const { url, body } = await fetchAllowlisted(raw);
+  return { url, text: extractBlogText(body) };
+}
+
+/** Fetch raw body (RSS/XML) from an allowlisted URL — no HTML stripping. */
+export async function fetchAllowedRaw(raw: string): Promise<{ url: URL; text: string }> {
+  const { url, body } = await fetchAllowlisted(raw, { rewriteNaverPost: false });
+  return { url, text: body };
 }
