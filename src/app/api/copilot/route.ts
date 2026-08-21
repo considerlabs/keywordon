@@ -46,31 +46,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
-  const consumed = await tryConsumeAiUsage(
-    authContext.userId,
-    authContext.plan.limits.aiMonthly,
-  );
-  if (!consumed.ok) {
-    return NextResponse.json(
-      {
-        error: `이번 달 AI 생성 한도(${authContext.plan.limits.aiMonthly}회)를 모두 사용했습니다.`,
-      },
-      { status: 429 },
-    );
-  }
-
-  const apiKey = getGeminiApiKey();
-  if (!apiKey) {
-    return NextResponse.json(
-      {
-        error:
-          "Gemini API 키가 없습니다. Google AI Studio의 AIza 키를 GOOGLE_GENERATIVE_AI_API_KEY로 등록해 주세요.",
-      },
-      { status: 503 },
-    );
-  }
-
-  const body = (await request.json()) as {
+  let body: {
     keyword?: string;
     keywords?: string[];
     title?: string;
@@ -86,12 +62,41 @@ export async function POST(request: NextRequest) {
       seoInsights?: boolean;
     };
   };
+  try {
+    body = (await request.json()) as typeof body;
+  } catch {
+    return NextResponse.json({ error: "요청 형식이 올바르지 않습니다." }, { status: 400 });
+  }
 
   const keyword = typeof body.keyword === "string" ? trimWriteField(body.keyword) : "";
   const keywords = normalizeKeywords(body.keywords);
   const primaryKeyword = keywords[0] ?? keyword;
   if (!primaryKeyword) {
     return NextResponse.json({ error: "키워드를 입력해 주세요." }, { status: 400 });
+  }
+
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    return NextResponse.json(
+      {
+        error:
+          "Gemini API 키가 없습니다. Google AI Studio의 AIza 키를 GOOGLE_GENERATIVE_AI_API_KEY로 등록해 주세요.",
+      },
+      { status: 503 },
+    );
+  }
+
+  const consumed = await tryConsumeAiUsage(
+    authContext.userId,
+    authContext.plan.limits.aiMonthly,
+  );
+  if (!consumed.ok) {
+    return NextResponse.json(
+      {
+        error: `이번 달 AI 생성 한도(${authContext.plan.limits.aiMonthly}회)를 모두 사용했습니다.`,
+      },
+      { status: 429 },
+    );
   }
 
   const postType = typeof body.postType === "string" ? trimWriteField(body.postType) : "";

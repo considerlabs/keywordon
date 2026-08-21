@@ -60,4 +60,21 @@ describe("buildWritePrompt", () => {
     });
     expect(user).toContain("어미: ~해요");
   });
+
+  it("uses the default tone when automatic tone is selected", () => {
+    const { user } = buildWritePrompt({
+      postTypeLabel: "일상/취미",
+      title: "",
+      keywords: ["캠핑"],
+      charCount: 500,
+      tone: "자동 설정",
+      emphasis: "",
+      flags: { useLatestSearch: false, hashtags: false, seoInsights: false },
+      keywordStats: { monthlyVolume: 100, category: "생활", related: [] },
+      personaBlock: null,
+    });
+
+    expect(user).toContain("톤: 전문적이면서 친근한");
+    expect(user).not.toContain("톤: 자동 설정");
+  });
 });

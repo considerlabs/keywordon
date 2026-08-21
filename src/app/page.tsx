@@ -47,7 +47,7 @@ export default function HomePage() {
               <Sparkles className="h-4 w-4" />
             </Link>
             <Link
-              href="/copilot"
+              href="/write"
               className="inline-flex items-center gap-2 rounded-full bg-[var(--ink)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand)]"
             >
               Copilot AI

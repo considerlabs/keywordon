@@ -42,13 +42,14 @@ export function buildWritePrompt(input: WritePromptInput): WritePromptOutput {
     keywordStats.related.length > 0
       ? keywordStats.related.join(", ")
       : "(연관어 없음)";
+  const resolvedTone = tone === "자동 설정" ? "전문적이면서 친근한" : tone;
 
   const lines: string[] = [
     `글 유형: ${postTypeLabel}`,
     `제목: ${title || "(제목 없음)"}`,
     `키워드: ${keywordLine}`,
     `목표 분량: 약 ${charCount}자`,
-    `톤: ${tone}`,
+    `톤: ${resolvedTone}`,
     `월간 검색량: ${keywordStats.monthlyVolume}`,
     `카테고리: ${keywordStats.category}`,
     `연관어: ${relatedLine}`,

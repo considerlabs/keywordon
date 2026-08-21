@@ -15,8 +15,10 @@ export function ExportActions({ draft, title }: ExportActionsProps) {
     try {
       await navigator.clipboard.writeText(draft);
       setMessage("초안을 복사했습니다.");
+      return true;
     } catch {
       setMessage("복사하지 못했습니다. 초안을 직접 선택해 복사해 주세요.");
+      return false;
     }
   }
 
@@ -35,8 +37,9 @@ export function ExportActions({ draft, title }: ExportActionsProps) {
   }
 
   async function openNaverBlog() {
+    const copied = await copyDraft();
+    if (!copied) return;
     window.open("https://blog.naver.com/", "_blank", "noopener,noreferrer");
-    await copyDraft();
     setMessage("초안을 복사한 뒤 네이버 글쓰기 창에 붙여넣으세요.");
   }
 

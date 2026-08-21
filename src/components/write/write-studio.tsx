@@ -279,7 +279,7 @@ export function WriteStudio() {
 
             <button
               type="submit"
-              disabled={status === "streaming"}
+              disabled={status === "streaming" || keywords.length === 0}
               className="w-full rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {status === "streaming" ? "초안을 작성하고 있어요..." : "초안 생성하기"}
