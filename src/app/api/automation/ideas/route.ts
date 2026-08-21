@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { assertIdeasDailyLimit, dayKey } from "@/lib/automation/daily";
+import { buildLiveSuggestions } from "@/lib/automation/live-suggestions";
 import {
   countIdeasCreatedOn,
   insertIdea,
   listIdeas,
 } from "@/lib/automation/repository";
-import { mergeTrendSuggestions } from "@/lib/automation/suggestions";
 import type { IdeaSource } from "@/lib/automation/types";
-import { getRealtimeTrends } from "@/lib/keyword-engine";
 import { assertFeature } from "@/lib/quota";
 import { trimWriteField } from "@/lib/write/prompt";
 
@@ -42,19 +41,16 @@ export async function GET() {
     const userId = authContext.user.id;
     const dailyLimit = authContext.plan.limits.automationIdeasDaily;
     const key = dayKey();
-    const [ideas, dailyUsed] = await Promise.all([
+    const [ideas, dailyUsed, live] = await Promise.all([
       listIdeas(userId),
       countIdeasCreatedOn(userId, key),
+      buildLiveSuggestions(12),
     ]);
-    const trends = getRealtimeTrends().map((item) => ({
-      keyword: item.keyword,
-      volume: undefined as number | undefined,
-    }));
-    const suggestions = mergeTrendSuggestions(trends);
 
     return NextResponse.json({
       ideas,
-      suggestions,
+      suggestions: live.suggestions,
+      suggestionSource: live.source,
       dailyUsed,
       dailyLimit,
     });

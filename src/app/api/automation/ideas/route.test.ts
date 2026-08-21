@@ -22,10 +22,6 @@ vi.mock("@/lib/automation/repository", () => ({
   listIdeas: mocks.listIdeas,
 }));
 
-vi.mock("@/lib/keyword-engine", () => ({
-  getRealtimeTrends: vi.fn().mockReturnValue([{ keyword: "트렌드키워드", rank: 1 }]),
-}));
-
 import { POST } from "./route";
 
 describe("POST /api/automation/ideas", () => {

@@ -73,7 +73,7 @@ export function IdeaColumn({
       </form>
 
       <div className="mb-4">
-        <p className="mb-2 text-xs font-semibold text-[var(--muted)]">오늘의 추천</p>
+        <p className="mb-2 text-xs font-semibold text-[var(--muted)]">오늘의 추천 (네이버 디렉터리)</p>
         <ul className="max-h-40 space-y-2 overflow-y-auto">
           {suggestions.slice(0, 8).map((item) => (
             <li

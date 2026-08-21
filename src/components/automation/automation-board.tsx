@@ -228,7 +228,7 @@ export function AutomationBoard() {
           글감 → 초안 → 발행
         </h1>
         <p className="mt-3 max-w-2xl text-[var(--muted)]">
-          오늘의 글감을 고르고 AI 초안을 만든 뒤, 복사·MD·네이버 붙여넣기로 반자동 발행하세요.
+          네이버 디렉터리 인기 글을 바탕으로 오늘의 글감을 고르고, AI 초안 후 복사·MD·네이버로 반자동 발행하세요.
         </p>
         <div className="mt-5 flex flex-wrap gap-3 text-sm">
           <Link
