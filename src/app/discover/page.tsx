@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import type { AdCompetition } from "@/lib/keyword-engine";
 import { formatNumber } from "@/lib/utils";
+import { useExamplePlaceholder } from "@/lib/use-example-placeholder";
 
 type DiscoverItem = {
   keyword: string;
@@ -14,11 +15,12 @@ type DiscoverItem = {
 };
 
 export default function DiscoverPage() {
-  const [seed, setSeed] = useState("마케팅");
+  const [seed, setSeed] = useState("");
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<DiscoverItem[]>([]);
   const [error, setError] = useState("");
   const [opportunityLocked, setOpportunityLocked] = useState(false);
+  const example = useExamplePlaceholder("예: 마케팅");
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -60,8 +62,10 @@ export default function DiscoverPage() {
         <input
           value={seed}
           onChange={(event) => setSeed(event.target.value)}
+          placeholder={example.placeholder}
+          onFocus={example.onFocus}
+          onBlur={example.onBlur}
           className="flex-1 rounded-2xl bg-[var(--canvas)] px-4 py-3 outline-none ring-1 ring-black/5 focus:ring-[var(--brand)]"
-          placeholder="시드 키워드"
         />
         <button
           type="submit"

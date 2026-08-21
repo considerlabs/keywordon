@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { CreatorSubnav } from "@/components/creator-subnav";
 import { formatNumber } from "@/lib/utils";
+import { useExamplePlaceholder } from "@/lib/use-example-placeholder";
 
 interface BlogReport {
   url: string;
@@ -23,10 +24,11 @@ interface BlogReport {
 }
 
 export default function BlogPage() {
-  const [url, setUrl] = useState("https://blog.naver.com/example");
+  const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [report, setReport] = useState<BlogReport | null>(null);
+  const example = useExamplePlaceholder("예: https://blog.naver.com/your-id");
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -66,8 +68,10 @@ export default function BlogPage() {
         <input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
+          placeholder={example.placeholder}
+          onFocus={example.onFocus}
+          onBlur={example.onBlur}
           className="flex-1 rounded-2xl bg-[var(--panel)] px-4 py-3 ring-1 ring-black/5"
-          placeholder="블로그 URL"
         />
         <button
           type="submit"

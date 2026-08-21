@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PlanGate } from "@/components/plan-gate";
 import { QuotaBanner } from "@/components/quota-banner";
 import { PERSONA_STEPS } from "@/lib/persona/types";
+import { useExamplePlaceholder } from "@/lib/use-example-placeholder";
 
 type PersonaPayload = {
   id: number;
@@ -32,6 +33,8 @@ export function PersonaPanel() {
   const [monthlyUsed, setMonthlyUsed] = useState(0);
   const [monthlyLimit, setMonthlyLimit] = useState(0);
   const [busy, setBusy] = useState(false);
+  const urlExample = useExamplePlaceholder("예: https://blog.naver.com/your-id");
+  const postsExample = useExamplePlaceholder("글 본문을 붙여넣기 (여러 글은 --- 로 구분)");
 
   const loadPersona = useCallback(async () => {
     try {
@@ -205,15 +208,19 @@ export function PersonaPanel() {
         <input
           value={blogUrl}
           onChange={(e) => setBlogUrl(e.target.value)}
+          placeholder={urlExample.placeholder}
+          onFocus={urlExample.onFocus}
+          onBlur={urlExample.onBlur}
           className="w-full rounded-2xl bg-[var(--panel)] px-4 py-3 ring-1 ring-black/5"
-          placeholder="블로그 URL (선택, 네이버/티스토리 https)"
         />
         <textarea
           value={postsText}
           onChange={(e) => setPostsText(e.target.value)}
           rows={6}
+          placeholder={postsExample.placeholder}
+          onFocus={postsExample.onFocus}
+          onBlur={postsExample.onBlur}
           className="w-full rounded-2xl bg-[var(--panel)] px-4 py-3 ring-1 ring-black/5"
-          placeholder="글 본문을 붙여넣기 (여러 글은 --- 로 구분)"
         />
         <button
           type="submit"

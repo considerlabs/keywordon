@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PlanGate } from "@/components/plan-gate";
 import { QuotaBanner } from "@/components/quota-banner";
 import { ImportPostsModal } from "@/components/shortform/import-posts-modal";
+import { useExamplePlaceholder } from "@/lib/use-example-placeholder";
 
 type Project = {
   id: number;
@@ -38,6 +39,11 @@ export function ShortformHub() {
   const [title, setTitle] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const titleExample = useExamplePlaceholder("예: 보험 영업 KPI 3가지");
+  const urlExample = useExamplePlaceholder(
+    "예: https://blog.naver.com/your-id/223… 또는 https://myblog.tistory.com/…",
+  );
+  const textExample = useExamplePlaceholder("블로그 본문을 붙여넣으세요…");
 
   const load = useCallback(async () => {
     setMessage("");
@@ -185,7 +191,9 @@ export function ShortformHub() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   maxLength={200}
-                  placeholder="예: 보험 영업 KPI 3가지"
+                  placeholder={titleExample.placeholder}
+                  onFocus={titleExample.onFocus}
+                  onBlur={titleExample.onBlur}
                   className="w-full rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
                 />
               </div>
@@ -197,7 +205,9 @@ export function ShortformHub() {
                   id="sf-url"
                   value={sourceUrl}
                   onChange={(e) => setSourceUrl(e.target.value)}
-                  placeholder="https://blog.naver.com/… 또는 https://myblog.tistory.com/…"
+                  placeholder={urlExample.placeholder}
+                  onFocus={urlExample.onFocus}
+                  onBlur={urlExample.onBlur}
                   className="w-full rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
                 />
                 <p className="mt-1 text-xs text-[var(--muted)]">
@@ -213,7 +223,9 @@ export function ShortformHub() {
                   value={sourceText}
                   onChange={(e) => setSourceText(e.target.value)}
                   rows={4}
-                  placeholder="블로그 본문을 붙여넣으세요…"
+                  placeholder={textExample.placeholder}
+                  onFocus={textExample.onFocus}
+                  onBlur={textExample.onBlur}
                   className="w-full rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
                 />
               </div>

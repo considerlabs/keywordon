@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useExamplePlaceholder } from "@/lib/use-example-placeholder";
 import type { Engine } from "@/lib/keyword-engine";
 
 interface KeywordSearchFormProps {
@@ -22,6 +23,7 @@ export function KeywordSearchForm({
   const router = useRouter();
   const [keyword, setKeyword] = useState(initialKeyword);
   const [engine, setEngine] = useState<Engine>(initialEngine);
+  const example = useExamplePlaceholder("예: 캠핑 용품, 다이어트 식단");
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -67,7 +69,9 @@ export function KeywordSearchForm({
           <input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
-            placeholder="분석할 키워드를 입력하세요"
+            placeholder={example.placeholder}
+            onFocus={example.onFocus}
+            onBlur={example.onBlur}
             className={cn(
               "w-full bg-transparent outline-none placeholder:text-[var(--muted)]",
               hero ? "text-lg" : "text-base",

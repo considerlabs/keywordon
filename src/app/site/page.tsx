@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { formatNumber } from "@/lib/utils";
+import { useExamplePlaceholder } from "@/lib/use-example-placeholder";
 
 interface SiteReport {
   domain: string;
@@ -20,10 +21,11 @@ interface SiteReport {
 }
 
 export default function SitePage() {
-  const [domain, setDomain] = useState("example.com");
+  const [domain, setDomain] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [report, setReport] = useState<SiteReport | null>(null);
+  const example = useExamplePlaceholder("예: example.com");
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -61,8 +63,10 @@ export default function SitePage() {
         <input
           value={domain}
           onChange={(e) => setDomain(e.target.value)}
+          placeholder={example.placeholder}
+          onFocus={example.onFocus}
+          onBlur={example.onBlur}
           className="flex-1 rounded-2xl bg-[var(--panel)] px-4 py-3 ring-1 ring-black/5"
-          placeholder="example.com"
         />
         <button
           type="submit"

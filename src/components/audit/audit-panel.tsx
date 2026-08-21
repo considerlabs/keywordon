@@ -6,17 +6,20 @@ import { EmptyState } from "@/components/empty-state";
 import { PlanGate } from "@/components/plan-gate";
 import { QuotaBanner } from "@/components/quota-banner";
 import type { PostAuditReport } from "@/lib/audit/types";
+import { useExamplePlaceholder } from "@/lib/use-example-placeholder";
 
 type AuditStatus = "idle" | "analyzing" | "done" | "error" | "quota" | "login" | "plan";
 
 export function AuditPanel() {
-  const [postUrl, setPostUrl] = useState("https://blog.naver.com/example/123");
+  const [postUrl, setPostUrl] = useState("");
   const [targetKeyword, setTargetKeyword] = useState("");
   const [status, setStatus] = useState<AuditStatus>("idle");
   const [message, setMessage] = useState("");
   const [report, setReport] = useState<PostAuditReport | null>(null);
   const [monthlyUsed, setMonthlyUsed] = useState(0);
   const [monthlyLimit, setMonthlyLimit] = useState(0);
+  const urlExample = useExamplePlaceholder("예: https://blog.naver.com/your-id/223456789012");
+  const keywordExample = useExamplePlaceholder("예: 캠핑 용품 (선택)");
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -93,14 +96,18 @@ export function AuditPanel() {
         <input
           value={postUrl}
           onChange={(e) => setPostUrl(e.target.value)}
+          placeholder={urlExample.placeholder}
+          onFocus={urlExample.onFocus}
+          onBlur={urlExample.onBlur}
           className="w-full rounded-2xl bg-[var(--panel)] px-4 py-3 ring-1 ring-black/5"
-          placeholder="게시글 URL (https://blog.naver.com/...)"
         />
         <input
           value={targetKeyword}
           onChange={(e) => setTargetKeyword(e.target.value)}
+          placeholder={keywordExample.placeholder}
+          onFocus={keywordExample.onFocus}
+          onBlur={keywordExample.onBlur}
           className="w-full rounded-2xl bg-[var(--panel)] px-4 py-3 ring-1 ring-black/5"
-          placeholder="타겟 키워드 (선택)"
         />
         <button
           type="submit"

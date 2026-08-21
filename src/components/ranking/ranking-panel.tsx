@@ -8,6 +8,7 @@ import {
   type BlogRankingEntry,
 } from "@/lib/ranking/simulate";
 import { formatNumber } from "@/lib/utils";
+import { useExamplePlaceholder } from "@/lib/use-example-placeholder";
 
 const CHANGE_LABEL: Record<BlogRankingEntry["change"], string> = {
   up: "상승",
@@ -17,20 +18,23 @@ const CHANGE_LABEL: Record<BlogRankingEntry["change"], string> = {
 };
 
 export function RankingPanel() {
-  const [keyword, setKeyword] = useState(getDefaultRankingKeyword());
+  const defaultKeyword = getDefaultRankingKeyword();
+  const [keyword, setKeyword] = useState("");
   const [category, setCategory] = useState("");
   const [platform, setPlatform] = useState<"all" | "naver" | "tistory">("all");
   const [entries, setEntries] = useState<BlogRankingEntry[]>(() =>
-    buildBlogRanking({ keyword: getDefaultRankingKeyword() }),
+    buildBlogRanking({ keyword: defaultKeyword }),
   );
+  const example = useExamplePlaceholder(`예: ${defaultKeyword}`);
 
   const categories = useMemo(() => getRankingCategories(), []);
 
   function submit(event: FormEvent) {
     event.preventDefault();
+    const q = keyword.trim() || defaultKeyword;
     setEntries(
       buildBlogRanking({
-        keyword,
+        keyword: q,
         category: category || undefined,
         platform,
         topN: 20,
@@ -54,8 +58,10 @@ export function RankingPanel() {
         <input
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
+          placeholder={example.placeholder}
+          onFocus={example.onFocus}
+          onBlur={example.onBlur}
           className="rounded-2xl bg-[var(--panel)] px-4 py-3 ring-1 ring-black/5 sm:col-span-2"
-          placeholder="키워드"
         />
         <select
           value={category}

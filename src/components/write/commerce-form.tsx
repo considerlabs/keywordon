@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { ExportActions } from "@/components/write/export-actions";
+import { useExamplePlaceholder } from "@/lib/use-example-placeholder";
 
 export function CommerceForm() {
   const [productUrl, setProductUrl] = useState("");
@@ -10,6 +11,8 @@ export function CommerceForm() {
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const urlExample = useExamplePlaceholder("예: https://example.com/product");
+  const nameExample = useExamplePlaceholder("예: 접이식 캠핑 체어");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,7 +68,9 @@ export function CommerceForm() {
               type="url"
               value={productUrl}
               onChange={(event) => setProductUrl(event.target.value)}
-              placeholder="https://example.com/product"
+              placeholder={urlExample.placeholder}
+              onFocus={urlExample.onFocus}
+              onBlur={urlExample.onBlur}
               className="mt-2 w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 text-[var(--ink)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--brand)]"
             />
             <span className="mt-1.5 block text-xs font-normal text-[var(--muted)]">
@@ -79,7 +84,9 @@ export function CommerceForm() {
               value={productName}
               maxLength={120}
               onChange={(event) => setProductName(event.target.value)}
-              placeholder="예: 접이식 캠핑 체어"
+              placeholder={nameExample.placeholder}
+              onFocus={nameExample.onFocus}
+              onBlur={nameExample.onBlur}
               className="mt-2 w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 text-[var(--ink)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--brand)]"
             />
           </label>

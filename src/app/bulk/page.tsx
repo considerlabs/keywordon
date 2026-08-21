@@ -5,14 +5,18 @@ import Link from "next/link";
 import type { Engine } from "@/lib/keyword-engine";
 import type { AnalysisViewModel } from "@/lib/types";
 import { formatCurrency, formatNumber } from "@/lib/utils";
+import { useExamplePlaceholder } from "@/lib/use-example-placeholder";
 
 export default function BulkPage() {
-  const [text, setText] = useState("캠핑 용품\n다이어트 식단\n카페 창업\n노트북 추천");
+  const [text, setText] = useState("");
   const [engine, setEngine] = useState<Engine>("naver");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<AnalysisViewModel[]>([]);
   const [csvExport, setCsvExport] = useState(false);
   const [error, setError] = useState("");
+  const example = useExamplePlaceholder(
+    "키워드를 한 줄에 하나씩 입력하세요\n예)\n캠핑 용품\n다이어트 식단\n카페 창업",
+  );
 
   const count = useMemo(
     () =>
@@ -119,8 +123,10 @@ export default function BulkPage() {
           value={text}
           onChange={(event) => setText(event.target.value)}
           rows={8}
+          placeholder={example.placeholder}
+          onFocus={example.onFocus}
+          onBlur={example.onBlur}
           className="w-full rounded-2xl border-0 bg-[var(--canvas)] p-4 text-[15px] outline-none ring-1 ring-black/5 focus:ring-[var(--brand)]"
-          placeholder={"키워드를 한 줄에 하나씩 입력하세요\n예) 캠핑 용품"}
         />
         {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
         <div className="mt-4 flex flex-wrap gap-3">
