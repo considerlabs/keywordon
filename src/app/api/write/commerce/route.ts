@@ -30,30 +30,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
-  const consumed = await tryConsumeAiUsage(
-    authContext.userId,
-    authContext.plan.limits.aiMonthly,
-  );
-  if (!consumed.ok) {
-    return NextResponse.json(
-      {
-        error: `이번 달 AI 생성 한도(${authContext.plan.limits.aiMonthly}회)를 모두 사용했습니다.`,
-      },
-      { status: 429 },
-    );
-  }
-
-  const apiKey = getGeminiApiKey();
-  if (!apiKey) {
-    return NextResponse.json(
-      {
-        error:
-          "Gemini API 키가 없습니다. Google AI Studio의 AIza 키를 GOOGLE_GENERATIVE_AI_API_KEY로 등록해 주세요.",
-      },
-      { status: 503 },
-    );
-  }
-
   const body = (await request.json()) as {
     productUrl?: string;
     productName?: string;
@@ -81,6 +57,30 @@ export async function POST(request: NextRequest) {
           error instanceof Error ? error.message : "상품 링크를 확인해 주세요.",
       },
       { status: 400 },
+    );
+  }
+
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    return NextResponse.json(
+      {
+        error:
+          "Gemini API 키가 없습니다. Google AI Studio의 AIza 키를 GOOGLE_GENERATIVE_AI_API_KEY로 등록해 주세요.",
+      },
+      { status: 503 },
+    );
+  }
+
+  const consumed = await tryConsumeAiUsage(
+    authContext.userId,
+    authContext.plan.limits.aiMonthly,
+  );
+  if (!consumed.ok) {
+    return NextResponse.json(
+      {
+        error: `이번 달 AI 생성 한도(${authContext.plan.limits.aiMonthly}회)를 모두 사용했습니다.`,
+      },
+      { status: 429 },
     );
   }
 
