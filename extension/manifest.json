@@ -8,7 +8,10 @@
     "default_popup": "popup.html"
   },
   "permissions": ["activeTab", "storage", "sidePanel"],
-  "host_permissions": ["https://*/*", "http://*/*"],
+  "host_permissions": [
+    "https://keywordon.vercel.app/*",
+    "https://search.naver.com/*"
+  ],
   "side_panel": {
     "default_path": "sidepanel.html"
   },

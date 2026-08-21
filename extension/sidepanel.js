@@ -1,7 +1,7 @@
 const keywordInput = document.getElementById("keyword");
 const loadBtn = document.getElementById("load");
 const frame = document.getElementById("frame");
-const base = "http://localhost:3000";
+const base = "https://keywordon.vercel.app";
 
 function load() {
   const keyword = keywordInput.value.trim() || "마케팅";

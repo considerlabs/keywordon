@@ -30,6 +30,7 @@ export interface PlanDefinition {
     contentVolume: boolean;
     copilot: boolean;
     blogAnalysis: boolean;
+    trendAccess: boolean;
   };
   stripePriceEnv?: {
     monthly?: string;
@@ -68,6 +69,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       contentVolume: false,
       copilot: false,
       blogAnalysis: false,
+      trendAccess: false,
     },
   },
   free: {
@@ -100,6 +102,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       contentVolume: false,
       copilot: true,
       blogAnalysis: true,
+      trendAccess: true,
     },
   },
   basic: {
@@ -132,6 +135,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       contentVolume: true,
       copilot: true,
       blogAnalysis: true,
+      trendAccess: true,
     },
     stripePriceEnv: {
       monthly: "STRIPE_PRICE_BASIC_MONTHLY",
@@ -168,6 +172,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       contentVolume: true,
       copilot: true,
       blogAnalysis: true,
+      trendAccess: true,
     },
     stripePriceEnv: {
       monthly: "STRIPE_PRICE_SUPER_MONTHLY",
@@ -204,6 +209,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       contentVolume: true,
       copilot: true,
       blogAnalysis: true,
+      trendAccess: true,
     },
     stripePriceEnv: {
       monthly: "STRIPE_PRICE_ENTERPRISE_MONTHLY",
