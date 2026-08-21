@@ -10,7 +10,7 @@ analyzeBtn.addEventListener("click", () => {
   const keyword = keywordInput.value.trim();
   if (!keyword) return;
   chrome.storage.sync.set({ lastKeyword: keyword });
-  const base = "http://localhost:3000";
+  const base = "https://keywordon.vercel.app";
   chrome.tabs.create({
     url: `${base}/analyze?q=${encodeURIComponent(keyword)}&engine=naver`,
   });

@@ -12,7 +12,7 @@
   label.textContent = `"${query}" 바로 분석`;
 
   const link = document.createElement("a");
-  link.href = `http://localhost:3000/analyze?q=${encodeURIComponent(query)}&engine=naver`;
+  link.href = `https://keywordon.vercel.app/analyze?q=${encodeURIComponent(query)}&engine=naver`;
   link.target = "_blank";
   link.rel = "noreferrer";
   link.textContent = "열기";
