@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 import { CREATOR_SUBNAV, TOP_NAV, isNavActive } from "./nav";
 
 describe("TOP_NAV", () => {
-  it("exposes creator, automation, shortform, more", () => {
+  it("exposes product, automation, shortform, resources, pricing", () => {
     expect(TOP_NAV.map((g) => g.id)).toEqual([
-      "creator",
+      "product",
       "automation",
       "shortform",
-      "more",
+      "resources",
+      "pricing",
     ]);
   });
 
@@ -40,6 +41,11 @@ describe("TOP_NAV", () => {
 
   it("marks shortform with new badge", () => {
     expect(TOP_NAV.find((g) => g.id === "shortform")?.badge).toBe("new");
+  });
+
+  it("uses hover mega-menu copy with descriptions on product children", () => {
+    const product = TOP_NAV.find((g) => g.id === "product");
+    expect(product?.children?.every((c) => Boolean(c.description))).toBe(true);
   });
 });
 
