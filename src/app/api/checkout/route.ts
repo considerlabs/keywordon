@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { getStripe, resolveStripePriceId, stripeConfigured } from "@/lib/stripe";
 import { PAID_PLANS, type PlanId } from "@/lib/plans";
+import { getSetting } from "@/lib/settings/store";
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,7 +10,7 @@ export async function POST(request: NextRequest) {
     if (!authContext.userId) {
       return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
     }
-    if (!stripeConfigured()) {
+    if (!(await stripeConfigured())) {
       return NextResponse.json(
         {
           error:
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "유효하지 않은 플랜입니다." }, { status: 400 });
     }
 
-    const priceId = resolveStripePriceId(planId, interval);
+    const priceId = await resolveStripePriceId(planId, interval);
     if (!priceId) {
       return NextResponse.json(
         {
@@ -40,13 +41,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const stripe = getStripe();
+    const stripe = await getStripe();
     if (!stripe) {
       return NextResponse.json({ error: "Stripe 설정 오류" }, { status: 503 });
     }
 
-    const origin =
-      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || request.nextUrl.origin;
+    const appUrl = await getSetting("NEXT_PUBLIC_APP_URL");
+    const origin = appUrl?.replace(/\/$/, "") || request.nextUrl.origin;
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer_email: authContext.email ?? undefined,

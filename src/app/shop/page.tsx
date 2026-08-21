@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { PLANS, PAID_PLANS, type PlanId } from "@/lib/plans";
 import { formatNumber } from "@/lib/utils";
 
 export default function ShopPage() {
+  const router = useRouter();
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
   const [loadingPlan, setLoadingPlan] = useState<PlanId | null>(null);
   const [message, setMessage] = useState("");
@@ -33,14 +35,14 @@ export default function ShopPage() {
       }
 
       if (response.status === 401) {
-        window.location.href = `/sign-in?redirect_url=${encodeURIComponent("/shop")}`;
+        router.push(`/sign-in?redirect_url=${encodeURIComponent("/shop")}`);
         return;
       }
       if (!response.ok) {
         throw new Error(payload.error ?? "결제 세션 생성 실패");
       }
       if (payload.url) {
-        window.location.href = payload.url;
+        window.location.assign(payload.url);
         return;
       }
       throw new Error("결제 URL이 없습니다.");

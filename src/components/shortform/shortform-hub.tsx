@@ -81,6 +81,8 @@ export function ShortformHub() {
   }, []);
 
   useEffect(() => {
+    // Mount fetch for shortform list.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 

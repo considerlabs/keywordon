@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { analyzeKeyword, type Engine, type KeywordAnalysis } from "../keyword-engine";
+import { getSetting } from "../settings/store";
 
 interface NaverKeywordItem {
   relKeyword: string;
@@ -26,22 +27,27 @@ function signNaver(timestamp: string, method: string, uri: string, secret: strin
   return crypto.createHmac("sha256", secret).update(message).digest("base64");
 }
 
-export function hasNaverCredentials() {
-  return Boolean(
-    process.env.NAVER_SEARCHAD_CUSTOMER_ID &&
-      process.env.NAVER_SEARCHAD_API_KEY &&
-      process.env.NAVER_SEARCHAD_SECRET_KEY,
-  );
+export async function hasNaverCredentials() {
+  const [customerId, apiKey, secret] = await Promise.all([
+    getSetting("NAVER_SEARCHAD_CUSTOMER_ID"),
+    getSetting("NAVER_SEARCHAD_API_KEY"),
+    getSetting("NAVER_SEARCHAD_SECRET_KEY"),
+  ]);
+  return Boolean(customerId && apiKey && secret);
 }
 
-export function hasGoogleCredentials() {
-  return Boolean(process.env.GOOGLE_ADS_DEVELOPER_TOKEN && process.env.GOOGLE_ADS_CUSTOMER_ID);
+export async function hasGoogleCredentials() {
+  const [token, customerId] = await Promise.all([
+    getSetting("GOOGLE_ADS_DEVELOPER_TOKEN"),
+    getSetting("GOOGLE_ADS_CUSTOMER_ID"),
+  ]);
+  return Boolean(token && customerId);
 }
 
 async function fetchNaverKeyword(keyword: string): Promise<KeywordAnalysis | null> {
-  const customerId = process.env.NAVER_SEARCHAD_CUSTOMER_ID;
-  const apiKey = process.env.NAVER_SEARCHAD_API_KEY;
-  const secret = process.env.NAVER_SEARCHAD_SECRET_KEY;
+  const customerId = await getSetting("NAVER_SEARCHAD_CUSTOMER_ID");
+  const apiKey = await getSetting("NAVER_SEARCHAD_API_KEY");
+  const secret = await getSetting("NAVER_SEARCHAD_SECRET_KEY");
   if (!customerId || !apiKey || !secret) return null;
 
   const uri = "/keywordstool";
@@ -128,7 +134,7 @@ export async function resolveKeywordAnalysis(
   keyword: string,
   engine: Engine,
 ): Promise<{ data: KeywordAnalysis; source: "live" | "simulated" }> {
-  if (engine === "naver" && hasNaverCredentials()) {
+  if (engine === "naver" && (await hasNaverCredentials())) {
     try {
       const live = await fetchNaverKeyword(keyword);
       if (live) return { data: live, source: "live" };

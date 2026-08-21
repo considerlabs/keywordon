@@ -2,6 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Outfit, Source_Sans_3 } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 import { isClerkConfigured } from "@/lib/auth";
 import "./globals.css";
 
@@ -28,14 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <>
       <SiteHeader />
       <main className="flex-1">{children}</main>
-      <footer className="border-t border-[var(--line)] bg-[var(--surface)]">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-8 text-sm text-[var(--muted)] md:flex-row md:items-center md:justify-between">
-          <p className="font-[family-name:var(--font-display)] font-semibold text-[var(--ink)]">
-            KeywordOn
-          </p>
-          <p>SEO · 콘텐츠 마케팅 · 키워드 발굴 · AI Copilot</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </>
   );
 

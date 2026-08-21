@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { PAID_PLANS, type PlanId } from "@/lib/plans";
 import { getStripe, planFromStripePrice } from "@/lib/stripe";
 import { setUserPlan } from "@/lib/db/users";
+import { getSetting } from "@/lib/settings/store";
 
 function isPaidPlanId(value: string | undefined | null): value is PlanId {
   return Boolean(value && (PAID_PLANS as string[]).includes(value));
 }
 
 export async function POST(request: NextRequest) {
-  const stripe = getStripe();
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  const stripe = await getStripe();
+  const secret = await getSetting("STRIPE_WEBHOOK_SECRET");
   if (!stripe || !secret) {
     return NextResponse.json({ error: "Stripe webhook 미설정" }, { status: 503 });
   }
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
   if (event.type === "customer.subscription.updated") {
     const subscription = event.data.object;
     const priceId = subscription.items.data[0]?.price.id;
-    const planId = planFromStripePrice(priceId);
+    const planId = await planFromStripePrice(priceId);
     const clerkId = subscription.metadata?.clerkId;
     if (clerkId && planId && isPaidPlanId(planId)) {
       await setUserPlan(clerkId, planId);

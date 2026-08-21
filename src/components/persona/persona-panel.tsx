@@ -76,6 +76,8 @@ export function PersonaPanel() {
   }, []);
 
   useEffect(() => {
+    // Mount fetch for persona status.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadPersona();
   }, [loadPersona]);
 

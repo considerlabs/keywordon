@@ -135,6 +135,18 @@ export const keywordSnapshots = pgTable("keyword_snapshots", {
   capturedAt: timestamp("captured_at").defaultNow().notNull(),
 });
 
+export const appSettings = pgTable(
+  "app_settings",
+  {
+    id: serial("id").primaryKey(),
+    key: text("key").notNull(),
+    valueEncrypted: text("value_encrypted").notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    updatedBy: text("updated_by"),
+  },
+  (table) => [uniqueIndex("app_settings_key_idx").on(table.key)],
+);
+
 export type UserRow = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type AutomationIdeaRow = typeof automationIdeas.$inferSelect;
@@ -144,3 +156,4 @@ export type BlogPersonaRow = typeof blogPersonas.$inferSelect;
 export type PostAuditRow = typeof postAudits.$inferSelect;
 export type KeywordSnapshotRow = typeof keywordSnapshots.$inferSelect;
 export type NewKeywordSnapshot = typeof keywordSnapshots.$inferInsert;
+export type AppSettingRow = typeof appSettings.$inferSelect;

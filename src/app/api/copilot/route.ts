@@ -11,27 +11,17 @@ import {
   trimWriteField,
 } from "@/lib/write/prompt";
 import { getActivePersona } from "@/lib/write/persona";
+import { getGeminiApiKey } from "@/lib/gemini";
 
 // Absolute URL — do not interpolate, do not use gemini-2.0-flash
 const GEMINI_ENDPOINT =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
 
-function getGeminiApiKey() {
-  const key = (
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
-    process.env.GEMINI_API_KEY ||
-    process.env.GOOGLE_API_KEY ||
-    ""
-  ).trim();
-  if (!key || key === "undefined") return null;
-  return key;
-}
-
 /** Public readiness probe only — no live Gemini calls, no key material. */
 export async function GET() {
   return NextResponse.json({
     model: "gemini-3.6-flash",
-    hasApiKey: Boolean(getGeminiApiKey()),
+    hasApiKey: Boolean(await getGeminiApiKey()),
   });
 }
 
@@ -75,7 +65,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "키워드를 입력해 주세요." }, { status: 400 });
   }
 
-  const apiKey = getGeminiApiKey();
+  const apiKey = await getGeminiApiKey();
   if (!apiKey) {
     return NextResponse.json(
       {

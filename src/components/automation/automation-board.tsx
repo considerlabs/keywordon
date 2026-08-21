@@ -97,6 +97,8 @@ export function AutomationBoard() {
   }, []);
 
   useEffect(() => {
+    // Mount fetch for kanban board.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 

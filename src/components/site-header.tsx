@@ -56,6 +56,10 @@ export function SiteHeader() {
     };
   }, []);
 
+  if (pathname.startsWith("/admin")) {
+    return null;
+  }
+
   return (
     <header
       ref={headerRef}

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
-import { PlanGate } from "@/components/plan-gate";
 
 type DraftPreview = {
   id: number;
@@ -25,6 +24,8 @@ export function ImportPostsModal({ open, onClose, onSelect }: ImportPostsModalPr
 
   useEffect(() => {
     if (!open) return;
+    // Fetch drafts when modal opens.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatus("loading");
     setMessage("");
     void (async () => {

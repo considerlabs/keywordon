@@ -4,20 +4,10 @@ import { tryConsumeAiUsage } from "@/lib/db/users";
 import { assertFeature } from "@/lib/quota";
 import { assertCommerceUrl, buildCommercePrompt } from "@/lib/write/commerce-prompt";
 import { trimWriteField } from "@/lib/write/prompt";
+import { getGeminiApiKey } from "@/lib/gemini";
 
 const GEMINI_ENDPOINT =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
-
-function getGeminiApiKey() {
-  const key = (
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
-    process.env.GEMINI_API_KEY ||
-    process.env.GOOGLE_API_KEY ||
-    ""
-  ).trim();
-  if (!key || key === "undefined") return null;
-  return key;
-}
 
 export async function POST(request: NextRequest) {
   const authContext = await getAuthContext();
@@ -60,7 +50,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const apiKey = getGeminiApiKey();
+  const apiKey = await getGeminiApiKey();
   if (!apiKey) {
     return NextResponse.json(
       {

@@ -13,20 +13,10 @@ import { fetchAllowedUrl, SsrfError } from "@/lib/ssrf";
 import { assertFeature } from "@/lib/quota";
 import { getActivePersona } from "@/lib/write/persona";
 import { trimWriteField } from "@/lib/write/prompt";
+import { getGeminiApiKey } from "@/lib/gemini";
 
 const GEMINI_ENDPOINT =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
-
-function getGeminiApiKey() {
-  const key = (
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
-    process.env.GEMINI_API_KEY ||
-    process.env.GOOGLE_API_KEY ||
-    ""
-  ).trim();
-  if (!key || key === "undefined") return null;
-  return key;
-}
 
 function mapDbError(error: unknown) {
   const message = error instanceof Error ? error.message : "";
@@ -127,7 +117,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: monthlyCheck.error }, { status: 429 });
   }
 
-  const apiKey = getGeminiApiKey();
+  const apiKey = await getGeminiApiKey();
   if (!apiKey) {
     return NextResponse.json(
       {

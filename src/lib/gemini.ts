@@ -1,13 +1,13 @@
+import { getSetting } from "@/lib/settings/store";
+
 export const GEMINI_ENDPOINT =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
 
-export function getGeminiApiKey(): string | null {
-  const key = (
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
-    process.env.GEMINI_API_KEY ||
-    process.env.GOOGLE_API_KEY ||
-    ""
-  ).trim();
+export async function getGeminiApiKey(): Promise<string | null> {
+  const primary = await getSetting("GOOGLE_GENERATIVE_AI_API_KEY");
+  const secondary = await getSetting("GEMINI_API_KEY");
+  const tertiary = process.env.GOOGLE_API_KEY?.trim();
+  const key = (primary || secondary || tertiary || "").trim();
   if (!key || key === "undefined") return null;
   return key;
 }
@@ -18,7 +18,7 @@ export async function callGemini(input: {
   temperature?: number;
   maxOutputTokens?: number;
 }): Promise<{ ok: true; text: string } | { ok: false; error: string; status: number }> {
-  const apiKey = getGeminiApiKey();
+  const apiKey = await getGeminiApiKey();
   if (!apiKey) {
     return {
       ok: false,

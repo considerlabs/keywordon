@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, hasDatabase } from "@/lib/db/index";
 import { keywordSnapshots } from "@/lib/db/schema";
 import { getRealtimeTrends } from "@/lib/keyword-engine";
+import { getSetting } from "@/lib/settings/store";
 import { truncateToHour } from "@/lib/trends/sparkline";
 
 export const runtime = "nodejs";
@@ -31,7 +32,7 @@ async function captureSnapshots() {
 }
 
 export async function POST(request: NextRequest) {
-  const secret = process.env.CRON_SECRET;
+  const secret = await getSetting("CRON_SECRET");
   if (!secret) {
     return NextResponse.json({ error: "CRON_SECRET이 설정되지 않았습니다." }, { status: 503 });
   }

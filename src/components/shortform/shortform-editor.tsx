@@ -96,6 +96,8 @@ export function ShortformEditor({ projectId }: ShortformEditorProps) {
   }, [projectId]);
 
   useEffect(() => {
+    // Mount fetch for shortform project.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 

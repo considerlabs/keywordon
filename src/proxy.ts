@@ -1,7 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// Keep page routes public; APIs enforce auth/plan themselves with JSON errors.
-const isProtectedRoute = createRouteMatcher(["/site(.*)"]);
+// Keep most page routes public; APIs enforce auth/plan themselves with JSON errors.
+const isProtectedRoute = createRouteMatcher(["/site(.*)", "/admin(.*)"]);
 
 const clerkConfigured = Boolean(
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY,

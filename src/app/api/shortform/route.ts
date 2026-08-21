@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
-import { assertShortformMonthlyLimit, monthKey } from "@/lib/shortform/monthly";
+import { monthKey } from "@/lib/shortform/monthly";
 import { countShortformGenerationsThisMonth, insertProject, listProjects } from "@/lib/shortform/repository";
 import { POPULAR_SHORTFORM_MOCK } from "@/lib/shortform/types";
 import { assertAllowedUrl, SsrfError } from "@/lib/ssrf";
