@@ -11,11 +11,11 @@ import { CHAR_COUNTS, POST_TYPES, TONE_PRESETS, type WritePromptFlags } from "@/
 type StudioStatus = "idle" | "streaming" | "done" | "error" | "quota" | "login" | "plan";
 
 const quotaUsage = {
-  aiUsed: 0,
-  aiLimit: 0,
+  aiUsed: 1,
+  aiLimit: 1,
   aiRemaining: 0,
   aiPercent: 100,
-  aiIncluded: false,
+  aiIncluded: true,
 };
 
 export function WriteStudio() {

@@ -35,8 +35,8 @@ export function ExportActions({ draft, title }: ExportActionsProps) {
   }
 
   async function openNaverBlog() {
-    await copyDraft();
     window.open("https://blog.naver.com/", "_blank", "noopener,noreferrer");
+    await copyDraft();
     setMessage("초안을 복사한 뒤 네이버 글쓰기 창에 붙여넣으세요.");
   }
 
