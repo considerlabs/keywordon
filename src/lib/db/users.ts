@@ -105,15 +105,32 @@ export async function ensureUser(
       plan: "free",
       usageMonthKey: monthKey(),
     })
+    .onConflictDoNothing({ target: users.clerkId })
     .returning();
 
+  if (created[0]) {
+    return {
+      id: created[0].id,
+      plan: created[0].plan as PlanId,
+      clerkId: created[0].clerkId,
+      email: created[0].email,
+      aiUsedMonth: created[0].aiUsedMonth,
+      googleUsedMonth: created[0].googleUsedMonth,
+    };
+  }
+
+  // Concurrent signup won the race — re-select the row they inserted.
+  const raced = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
+  if (!raced[0]) {
+    throw new Error("ensureUser: insert conflict but row missing");
+  }
   return {
-    id: created[0].id,
-    plan: created[0].plan as PlanId,
-    clerkId: created[0].clerkId,
-    email: created[0].email,
-    aiUsedMonth: created[0].aiUsedMonth,
-    googleUsedMonth: created[0].googleUsedMonth,
+    id: raced[0].id,
+    plan: raced[0].plan as PlanId,
+    clerkId: raced[0].clerkId,
+    email: raced[0].email,
+    aiUsedMonth: raced[0].aiUsedMonth,
+    googleUsedMonth: raced[0].googleUsedMonth,
   };
 }
 

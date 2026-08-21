@@ -23,7 +23,8 @@ curl -X POST http://localhost:3000/api/cron/snapshot \
 
 - [ ] Unauthorized requests rejected (401)
 - [ ] Valid secret inserts rows into `keyword_snapshots`
-- [ ] `vercel.json` cron path `/api/cron/snapshot` schedule `0 * * * *`
+- [ ] `vercel.json` cron path `/api/cron/snapshot` schedule `0 0 * * *` (Hobby: 일 1회; Pro면 시간별로 상향 가능)
+
 
 ## Trends (plan gating)
 
