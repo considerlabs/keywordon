@@ -66,7 +66,7 @@ export default function DiscoverPage() {
         <button
           type="submit"
           disabled={loading || !seed.trim()}
-          className="rounded-full bg-[var(--brand)] px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          className="rounded-[var(--radius-cta)] bg-[var(--brand)] px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
         >
           {loading ? "발굴 중..." : "키워드 발굴"}
         </button>

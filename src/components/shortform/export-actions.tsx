@@ -44,7 +44,7 @@ export function ShortformExportActions({ title, script }: ShortformExportActions
         <button
           type="button"
           onClick={() => void copyText(capcut, "CapCut")}
-          className="rounded-full bg-[var(--brand)] px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)]"
+          className="rounded-[var(--radius-cta)] bg-[var(--brand)] px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)]"
         >
           CapCut 복사
         </button>

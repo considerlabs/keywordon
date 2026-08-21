@@ -229,7 +229,7 @@ export function ShortformEditor({ projectId }: ShortformEditorProps) {
               type="button"
               onClick={() => void generateScript()}
               disabled={status === "generating"}
-              className="rounded-full bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:opacity-50"
+              className="rounded-[var(--radius-cta)] bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:opacity-50"
             >
               {hasScript ? "대본 다시 생성" : "대본 생성"}
             </button>

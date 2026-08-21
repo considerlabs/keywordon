@@ -80,7 +80,7 @@ export function RankingPanel() {
         </select>
         <button
           type="submit"
-          className="rounded-full bg-[var(--brand)] px-6 py-3 text-sm font-semibold text-white sm:col-span-2 lg:col-span-1"
+          className="rounded-[var(--radius-cta)] bg-[var(--brand)] px-6 py-3 text-sm font-semibold text-white sm:col-span-2 lg:col-span-1"
         >
           순위 조회
         </button>

@@ -14,7 +14,7 @@ export function PlanGate({ featureLabel, planName }: PlanGateProps) {
       </p>
       <Link
         href="/shop"
-        className="mt-4 inline-flex rounded-full bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)]"
+        className="mt-4 inline-flex rounded-[var(--radius-cta)] bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)]"
       >
         플랜 보기
       </Link>

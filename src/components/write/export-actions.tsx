@@ -50,7 +50,7 @@ export function ExportActions({ draft, title }: ExportActionsProps) {
           type="button"
           onClick={() => void copyDraft()}
           disabled={isDisabled}
-          className="rounded-full bg-[var(--brand)] px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-[var(--radius-cta)] bg-[var(--brand)] px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           복사
         </button>

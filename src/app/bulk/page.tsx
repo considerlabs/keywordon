@@ -127,7 +127,7 @@ export default function BulkPage() {
           <button
             type="submit"
             disabled={loading || count === 0}
-            className="rounded-full bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:opacity-50"
+            className="rounded-[var(--radius-cta)] bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:opacity-50"
           >
             {loading ? "분석 중..." : "대량 분석하기"}
           </button>

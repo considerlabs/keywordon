@@ -140,7 +140,7 @@ export function TrendsPanel() {
               <li key={item.keyword}>
                 <Link
                   href={`/trends/${encodeURIComponent(item.keyword)}`}
-                  className="group flex items-center gap-4 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 transition hover:border-[var(--brand)]/30 hover:shadow-[0_12px_30px_rgba(15,40,50,0.08)]"
+                  className="group flex items-center gap-4 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 transition hover:border-[var(--brand)]/30 hover:shadow-[0_12px_30px_rgba(16,24,40,0.08)]"
                 >
                   <span className="w-7 text-center font-[family-name:var(--font-display)] text-xl font-bold text-[var(--brand)]">
                     {item.rank}

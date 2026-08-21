@@ -58,7 +58,7 @@ export function KeywordSearchForm({
 
       <div
         className={cn(
-          "flex items-stretch overflow-hidden rounded-2xl bg-white shadow-[0_20px_50px_rgba(15,40,50,0.12)] ring-1 ring-black/8",
+          "flex items-stretch overflow-hidden rounded-[var(--radius-cta)] bg-white shadow-[0_20px_50px_rgba(26,79,224,0.12)] ring-1 ring-black/8",
           hero ? "min-h-16" : "min-h-12",
         )}
       >

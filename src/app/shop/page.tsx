@@ -115,7 +115,7 @@ export default function ShopPage() {
                 type="button"
                 onClick={() => checkout(id)}
                 disabled={loadingPlan === id}
-                className="mt-auto rounded-full bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:opacity-60"
+                className="mt-auto rounded-[var(--radius-cta)] bg-[var(--brand)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:opacity-60"
               >
                 {loadingPlan === id ? "이동 중..." : "구독하기"}
               </button>

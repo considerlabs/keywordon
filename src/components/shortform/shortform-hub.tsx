@@ -221,7 +221,7 @@ export function ShortformHub() {
                 <button
                   type="submit"
                   disabled={busy || (!sourceUrl.trim() && !sourceText.trim())}
-                  className="rounded-full bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-[var(--radius-cta)] bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {busy ? "만드는 중…" : "프로젝트 만들기"}
                 </button>

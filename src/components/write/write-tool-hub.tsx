@@ -170,7 +170,7 @@ export function WriteToolHub() {
             <button
               type="submit"
               disabled={status === "streaming" || !keyword.trim()}
-              className="w-full rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-[var(--radius-cta)] bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {status === "streaming" ? "생성하고 있어요..." : `${activeTool.label} 생성하기`}
             </button>

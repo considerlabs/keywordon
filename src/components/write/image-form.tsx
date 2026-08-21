@@ -82,7 +82,7 @@ export function ImageForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-[var(--radius-cta)] bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? "이미지 브리프를 만들고 있어요..." : "이미지 브리프 생성하기"}
           </button>

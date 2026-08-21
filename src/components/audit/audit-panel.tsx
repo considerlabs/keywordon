@@ -105,7 +105,7 @@ export function AuditPanel() {
         <button
           type="submit"
           disabled={status === "analyzing"}
-          className="rounded-full bg-[var(--brand)] px-6 py-3 text-sm font-semibold text-white disabled:opacity-60"
+          className="rounded-[var(--radius-cta)] bg-[var(--brand)] px-6 py-3 text-sm font-semibold text-white disabled:opacity-60"
         >
           {status === "analyzing" ? "진단 중..." : "진단하기"}
         </button>

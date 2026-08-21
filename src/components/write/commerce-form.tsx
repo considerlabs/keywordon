@@ -100,7 +100,7 @@ export function CommerceForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-[var(--radius-cta)] bg-[var(--brand)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? "초안을 작성하고 있어요..." : "상품 소개 글 생성하기"}
           </button>

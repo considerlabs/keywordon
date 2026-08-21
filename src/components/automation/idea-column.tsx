@@ -66,7 +66,7 @@ export function IdeaColumn({
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-full bg-[var(--brand)] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:opacity-50"
+          className="w-full rounded-[var(--radius-cta)] bg-[var(--brand)] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)] disabled:opacity-50"
         >
           직접 추가
         </button>

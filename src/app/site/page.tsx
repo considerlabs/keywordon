@@ -67,7 +67,7 @@ export default function SitePage() {
         <button
           type="submit"
           disabled={loading}
-          className="rounded-full bg-[var(--brand)] px-6 py-3 text-sm font-semibold text-white"
+          className="rounded-[var(--radius-cta)] bg-[var(--brand)] px-6 py-3 text-sm font-semibold text-white"
         >
           {loading ? "진단 중..." : "진단하기"}
         </button>

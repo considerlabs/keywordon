@@ -72,7 +72,7 @@ export default function BlogPage() {
         <button
           type="submit"
           disabled={loading}
-          className="rounded-full bg-[var(--brand)] px-6 py-3 text-sm font-semibold text-white"
+          className="rounded-[var(--radius-cta)] bg-[var(--brand)] px-6 py-3 text-sm font-semibold text-white"
         >
           {loading ? "분석 중..." : "분석하기"}
         </button>

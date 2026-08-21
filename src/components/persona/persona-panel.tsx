@@ -218,7 +218,7 @@ export function PersonaPanel() {
         <button
           type="submit"
           disabled={busy || status === "analyzing"}
-          className="rounded-full bg-[var(--brand)] px-6 py-3 text-sm font-semibold text-white disabled:opacity-60"
+          className="rounded-[var(--radius-cta)] bg-[var(--brand)] px-6 py-3 text-sm font-semibold text-white disabled:opacity-60"
         >
           {status === "analyzing" ? "분석 중..." : busy ? "시작 중..." : "페르소나 학습 시작"}
         </button>

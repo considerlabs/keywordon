@@ -34,28 +34,28 @@ export default function HomePage() {
           <div className="animate-rise-delay mt-8 flex flex-wrap gap-3">
             <Link
               href="/bulk"
-              className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-semibold text-[var(--ink)] ring-1 ring-black/8 transition hover:bg-white"
+              className="inline-flex items-center gap-2 rounded-[var(--radius-cta)] bg-white/80 px-4 py-2.5 text-sm font-semibold text-[var(--ink)] ring-1 ring-black/8 transition hover:bg-white"
             >
               대량 키워드 조회
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/discover"
-              className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-semibold text-[var(--ink)] ring-1 ring-black/8 transition hover:bg-white"
+              className="inline-flex items-center gap-2 rounded-[var(--radius-cta)] bg-white/80 px-4 py-2.5 text-sm font-semibold text-[var(--ink)] ring-1 ring-black/8 transition hover:bg-white"
             >
               키워드 발굴
               <Sparkles className="h-4 w-4" />
             </Link>
             <Link
               href="/write"
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--ink)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand)]"
+              className="btn-brand px-4 py-2.5 text-sm"
             >
               Copilot AI
               <Sparkles className="h-4 w-4" />
             </Link>
             <Link
               href="/shop"
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-[var(--radius-cta)] bg-[var(--ink)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--brand-ink)]"
             >
               플랜 보기
               <ArrowRight className="h-4 w-4" />

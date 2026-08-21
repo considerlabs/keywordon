@@ -98,7 +98,7 @@ export function AnalysisDashboard({ data }: { data: AnalysisViewModel }) {
               {data.summary}
             </p>
           </div>
-          <div className="rounded-2xl bg-[var(--brand)] px-5 py-4 text-white shadow-[0_16px_40px_rgba(13,115,119,0.3)]">
+          <div className="rounded-2xl bg-[var(--brand)] px-5 py-4 text-white shadow-[0_16px_40px_rgba(26,79,224,0.3)]">
             <p className="text-xs font-semibold uppercase tracking-wider text-white/80">
               기회지수
             </p>
