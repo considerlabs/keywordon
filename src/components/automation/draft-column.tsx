@@ -9,22 +9,28 @@ type Draft = {
 
 type DraftColumnProps = {
   drafts: Draft[];
-  generatingIdeaId: number | null;
+  generating: boolean;
+  onGoIdeas: () => void;
 };
 
-export function DraftColumn({ drafts, generatingIdeaId }: DraftColumnProps) {
+export function DraftColumn({ drafts, generating, onGoIdeas }: DraftColumnProps) {
   return (
-    <section className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4">
-      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-[var(--ink)]">
-        2. AI 초안
-      </h2>
-      {generatingIdeaId != null ? (
+    <section className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5">
+      <h2 className="mb-4 text-sm font-bold text-[var(--ink)]">AI 초안</h2>
+      {generating ? (
         <p className="mb-3 animate-pulse text-xs text-[var(--brand)]">초안을 작성하는 중…</p>
       ) : null}
       <ul className="space-y-3">
         {drafts.length === 0 ? (
-          <li className="rounded-xl border border-dashed border-[var(--line)] px-3 py-6 text-center text-sm text-[var(--muted)]">
-            글감에서 「초안 생성」을 누르면 여기에 나타납니다.
+          <li className="rounded-xl border border-dashed border-[var(--line)] px-3 py-8 text-center">
+            <p className="text-sm text-[var(--muted)]">글감 탭에서 초안을 만들어 보세요.</p>
+            <button
+              type="button"
+              onClick={onGoIdeas}
+              className="mt-3 text-sm font-semibold text-[var(--brand)]"
+            >
+              글감으로 이동
+            </button>
           </li>
         ) : (
           drafts.map((draft) => (
@@ -38,9 +44,9 @@ export function DraftColumn({ drafts, generatingIdeaId }: DraftColumnProps) {
                   {draft.status}
                 </span>
               </div>
-              <p className="max-h-40 overflow-y-auto whitespace-pre-wrap text-xs leading-relaxed text-[var(--muted)]">
-                {draft.content.slice(0, 600)}
-                {draft.content.length > 600 ? "…" : ""}
+              <p className="max-h-56 overflow-y-auto whitespace-pre-wrap text-xs leading-relaxed text-[var(--muted)]">
+                {draft.content.slice(0, 900)}
+                {draft.content.length > 900 ? "…" : ""}
               </p>
             </li>
           ))

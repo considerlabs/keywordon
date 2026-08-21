@@ -24,6 +24,19 @@ vi.mock("@/lib/shortform/repository", () => ({
   countShortformGenerationsThisMonth: mocks.countShortformGenerationsThisMonth,
 }));
 
+vi.mock("@/lib/automation/live-suggestions", () => ({
+  buildLiveSuggestions: vi.fn().mockResolvedValue({
+    suggestions: [
+      {
+        id: "live-blogger-123",
+        title: "실시간 추천 글",
+        keyword: "실시간 추천",
+      },
+    ],
+    source: "live",
+  }),
+}));
+
 import { GET, POST } from "./route";
 import { getAuthContext } from "@/lib/auth";
 import { assertFeature } from "@/lib/quota";
@@ -42,6 +55,20 @@ describe("GET /api/shortform", () => {
     const response = await GET();
     expect(response.status).toBe(401);
     expect(assertFeature).not.toHaveBeenCalled();
+  });
+
+  it("returns live popular sources with blog URLs", async () => {
+    mocks.listProjects.mockResolvedValueOnce([]);
+    mocks.countShortformGenerationsThisMonth.mockResolvedValueOnce(0);
+
+    const response = await GET();
+    expect(response.status).toBe(200);
+    const data = (await response.json()) as {
+      popular: Array<{ id: string; sourceUrl?: string }>;
+      popularSource: string;
+    };
+    expect(data.popularSource).toBe("live");
+    expect(data.popular[0]?.sourceUrl).toBe("https://blog.naver.com/blogger/123");
   });
 });
 

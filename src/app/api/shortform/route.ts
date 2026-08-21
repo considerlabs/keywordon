@@ -1,11 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
+import { buildLiveSuggestions } from "@/lib/automation/live-suggestions";
 import { monthKey } from "@/lib/shortform/monthly";
 import { countShortformGenerationsThisMonth, insertProject, listProjects } from "@/lib/shortform/repository";
-import { POPULAR_SHORTFORM_MOCK } from "@/lib/shortform/types";
+import {
+  POPULAR_SHORTFORM_MOCK,
+  suggestionIdToBlogUrl,
+  type PopularShortformItem,
+} from "@/lib/shortform/types";
 import { assertAllowedUrl, SsrfError } from "@/lib/ssrf";
 import { assertFeature } from "@/lib/quota";
 import { trimWriteField } from "@/lib/write/prompt";
+
+async function loadPopularSources(): Promise<{
+  popular: PopularShortformItem[];
+  popularSource: "live" | "curated";
+}> {
+  const { suggestions, source } = await buildLiveSuggestions(8);
+  if (source === "curated" || suggestions.length === 0) {
+    return { popular: POPULAR_SHORTFORM_MOCK, popularSource: "curated" };
+  }
+  return {
+    popularSource: "live",
+    popular: suggestions.map((item) => ({
+      id: item.id,
+      title: item.title,
+      keyword: item.keyword,
+      platform: "네이버 블로그",
+      views: "실시간",
+      sourceUrl: suggestionIdToBlogUrl(item.id),
+    })),
+  };
+}
 
 function mapDbError(error: unknown) {
   const message = error instanceof Error ? error.message : "";
@@ -32,14 +58,16 @@ export async function GET() {
   try {
     const userId = authContext.user.id;
     const monthlyLimit = authContext.plan.limits.shortformMonthly;
-    const [projects, monthlyUsed] = await Promise.all([
+    const [projects, monthlyUsed, popularBundle] = await Promise.all([
       listProjects(userId),
       countShortformGenerationsThisMonth(userId, monthKey()),
+      loadPopularSources(),
     ]);
 
     return NextResponse.json({
       projects,
-      popular: POPULAR_SHORTFORM_MOCK,
+      popular: popularBundle.popular,
+      popularSource: popularBundle.popularSource,
       monthlyUsed,
       monthlyLimit,
     });

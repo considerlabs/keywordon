@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { PlanGate } from "@/components/plan-gate";
 import { QuotaBanner } from "@/components/quota-banner";
@@ -34,6 +33,13 @@ type Draft = {
 };
 
 type BoardStatus = "loading" | "ready" | "login" | "plan" | "error" | "quota";
+type TabId = "ideas" | "drafts" | "publish";
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: "ideas", label: "글감" },
+  { id: "drafts", label: "AI 초안" },
+  { id: "publish", label: "발행" },
+];
 
 export function AutomationBoard() {
   const [status, setStatus] = useState<BoardStatus>("loading");
@@ -44,7 +50,9 @@ export function AutomationBoard() {
   const [dailyUsed, setDailyUsed] = useState(0);
   const [dailyLimit, setDailyLimit] = useState(0);
   const [generatingIdeaId, setGeneratingIdeaId] = useState<number | null>(null);
+  const [generatingSuggestionId, setGeneratingSuggestionId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<TabId>("ideas");
 
   const load = useCallback(async () => {
     setMessage("");
@@ -97,10 +105,68 @@ export function AutomationBoard() {
   }, []);
 
   useEffect(() => {
-    // Mount fetch for kanban board.
+    // Mount fetch for automation board.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
+
+  async function postIdea(input: {
+    title: string;
+    keyword?: string;
+    source?: string;
+    monthlyVolume?: number;
+  }): Promise<Idea | null> {
+    const response = await fetch("/api/automation/ideas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    const data = (await response.json().catch(() => ({}))) as {
+      error?: string;
+      idea?: Idea;
+    };
+    if (response.status === 429) {
+      setStatus("quota");
+      setMessage(data.error ?? "일일 글감 한도를 초과했습니다.");
+      return null;
+    }
+    if (!response.ok) {
+      setMessage(data.error ?? "글감을 추가하지 못했습니다.");
+      return null;
+    }
+    if (data.idea) {
+      setIdeas((current) => [data.idea!, ...current]);
+      setDailyUsed((used) => used + 1);
+      return data.idea;
+    }
+    return null;
+  }
+
+  async function postDraft(ideaId: number): Promise<Draft | null> {
+    const response = await fetch("/api/automation/drafts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ideaId }),
+    });
+    const data = (await response.json().catch(() => ({}))) as {
+      error?: string;
+      draft?: Draft;
+    };
+    if (response.status === 429) {
+      setStatus("quota");
+      setMessage(data.error ?? "AI 월간 한도를 초과했습니다.");
+      return null;
+    }
+    if (!response.ok) {
+      setMessage(data.error ?? "초안 생성에 실패했습니다.");
+      return null;
+    }
+    if (data.draft) {
+      setDrafts((current) => [data.draft!, ...current]);
+      return data.draft;
+    }
+    return null;
+  }
 
   async function addIdea(input: {
     title: string;
@@ -111,28 +177,8 @@ export function AutomationBoard() {
     setBusy(true);
     setMessage("");
     try {
-      const response = await fetch("/api/automation/ideas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-      });
-      const data = (await response.json().catch(() => ({}))) as {
-        error?: string;
-        idea?: Idea;
-      };
-      if (response.status === 429) {
-        setStatus("quota");
-        setMessage(data.error ?? "일일 글감 한도를 초과했습니다.");
-        return;
-      }
-      if (!response.ok) {
-        setMessage(data.error ?? "글감을 추가하지 못했습니다.");
-        return;
-      }
-      if (data.idea) {
-        setIdeas((current) => [data.idea!, ...current]);
-        setDailyUsed((used) => used + 1);
-      }
+      const idea = await postIdea(input);
+      if (idea) setMessage("글감을 추가했습니다.");
     } finally {
       setBusy(false);
     }
@@ -142,30 +188,36 @@ export function AutomationBoard() {
     setGeneratingIdeaId(ideaId);
     setMessage("");
     try {
-      const response = await fetch("/api/automation/drafts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ideaId }),
-      });
-      const data = (await response.json().catch(() => ({}))) as {
-        error?: string;
-        draft?: Draft;
-      };
-      if (response.status === 429) {
-        setStatus("quota");
-        setMessage(data.error ?? "AI 월간 한도를 초과했습니다.");
-        return;
-      }
-      if (!response.ok) {
-        setMessage(data.error ?? "초안 생성에 실패했습니다.");
-        return;
-      }
-      if (data.draft) {
-        setDrafts((current) => [data.draft!, ...current]);
-        setMessage("초안이 준비되었습니다. 발행 열에서 내보내세요.");
+      const draft = await postDraft(ideaId);
+      if (draft) {
+        setMessage("초안이 준비되었습니다.");
+        setTab("drafts");
       }
     } finally {
       setGeneratingIdeaId(null);
+    }
+  }
+
+  async function createDraftFromSuggestion(item: Suggestion) {
+    setGeneratingSuggestionId(item.id);
+    setBusy(true);
+    setMessage("");
+    try {
+      const idea = await postIdea({
+        title: item.title,
+        keyword: item.keyword,
+        source: "suggestion",
+        monthlyVolume: item.monthlyVolume,
+      });
+      if (!idea) return;
+      const draft = await postDraft(idea.id);
+      if (draft) {
+        setMessage("초안이 준비되었습니다.");
+        setTab("drafts");
+      }
+    } finally {
+      setGeneratingSuggestionId(null);
+      setBusy(false);
     }
   }
 
@@ -210,6 +262,12 @@ export function AutomationBoard() {
   const activeDrafts = drafts.filter((d) => d.status === "draft" || d.status === "ready");
   const publishDrafts = drafts.filter((d) => d.status === "ready" || d.status === "exported");
 
+  const tabCounts: Record<TabId, number> = {
+    ideas: ideas.length,
+    drafts: activeDrafts.length,
+    publish: publishDrafts.length,
+  };
+
   const quotaUsage = {
     aiUsed: dailyUsed,
     aiLimit: Math.max(dailyLimit, 1),
@@ -219,7 +277,7 @@ export function AutomationBoard() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-10">
+    <div className="mx-auto max-w-3xl px-5 py-10">
       <header className="mb-8">
         <p className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
           AI 자동화
@@ -228,25 +286,8 @@ export function AutomationBoard() {
           글감 → 초안 → 발행
         </h1>
         <p className="mt-3 max-w-2xl text-[var(--muted)]">
-          네이버 디렉터리 인기 글을 바탕으로 오늘의 글감을 고르고, AI 초안 후 복사·MD·네이버로 반자동 발행하세요.
+          오늘의 글감을 고르고 AI 초안을 만든 뒤, 복사·MD·네이버로 반자동 발행하세요.
         </p>
-        <div className="mt-5 flex flex-wrap gap-3 text-sm">
-          <Link
-            href="/audit"
-            className="rounded-full border border-[var(--line)] px-3.5 py-2 font-semibold text-[var(--ink)] transition hover:border-[var(--brand)]"
-          >
-            게시글 진단
-          </Link>
-          <Link
-            href="/shortform"
-            className="rounded-full border border-[var(--line)] px-3.5 py-2 font-semibold text-[var(--ink)] transition hover:border-[var(--brand)]"
-          >
-            숏폼 대본
-          </Link>
-          <span className="rounded-full border border-dashed border-[var(--line)] px-3.5 py-2 text-[var(--muted)]">
-            Chrome 확장으로 발행 보조 (설치 안내는 계정 설정에서)
-          </span>
-        </div>
       </header>
 
       {status === "loading" ? (
@@ -256,7 +297,7 @@ export function AutomationBoard() {
       {status === "login" ? (
         <EmptyState
           title="로그인이 필요합니다"
-          description="AI 자동화 칸반은 로그인 후 이용할 수 있습니다."
+          description="AI 자동화는 로그인 후 이용할 수 있습니다."
           action={{ href: "/sign-in", label: "로그인" }}
         />
       ) : null}
@@ -277,32 +318,90 @@ export function AutomationBoard() {
 
       {status === "ready" || status === "quota" ? (
         <>
+          <div
+            role="tablist"
+            aria-label="자동화 단계"
+            className="mb-5 flex gap-1 rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-1"
+          >
+            {TABS.map((item) => {
+              const selected = tab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  id={`automation-tab-${item.id}`}
+                  aria-selected={selected}
+                  aria-controls={`automation-panel-${item.id}`}
+                  onClick={() => setTab(item.id)}
+                  className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+                    selected
+                      ? "bg-[var(--brand)] text-white"
+                      : "text-[var(--muted)] hover:text-[var(--ink)]"
+                  }`}
+                >
+                  {item.label}
+                  <span className={`ml-1.5 tabular-nums ${selected ? "text-white/80" : ""}`}>
+                    {tabCounts[item.id]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           {message ? <p className="mb-4 text-sm text-[var(--muted)]">{message}</p> : null}
-          <div className="grid gap-4 md:grid-cols-3">
-            <IdeaColumn
-              ideas={ideas}
-              suggestions={suggestions}
-              dailyUsed={dailyUsed}
-              dailyLimit={dailyLimit}
-              busy={busy}
-              generatingIdeaId={generatingIdeaId}
-              onManualSubmit={onManualSubmit}
-              onAddSuggestion={(item) =>
-                void addIdea({
-                  title: item.title,
-                  keyword: item.keyword,
-                  source: "suggestion",
-                  monthlyVolume: item.monthlyVolume,
-                })
-              }
-              onGenerate={(id) => void generateDraft(id)}
-            />
-            <DraftColumn drafts={activeDrafts} generatingIdeaId={generatingIdeaId} />
-            <PublishColumn
-              drafts={publishDrafts}
-              busy={busy}
-              onMarkExported={(id) => void markExported(id)}
-            />
+
+          <div
+            role="tabpanel"
+            id="automation-panel-ideas"
+            aria-labelledby="automation-tab-ideas"
+            hidden={tab !== "ideas"}
+          >
+            {tab === "ideas" ? (
+              <IdeaColumn
+                ideas={ideas}
+                suggestions={suggestions}
+                dailyUsed={dailyUsed}
+                dailyLimit={dailyLimit}
+                busy={busy}
+                generatingIdeaId={generatingIdeaId}
+                generatingSuggestionId={generatingSuggestionId}
+                onManualSubmit={onManualSubmit}
+                onCreateFromSuggestion={(item) => void createDraftFromSuggestion(item)}
+                onGenerate={(id) => void generateDraft(id)}
+              />
+            ) : null}
+          </div>
+
+          <div
+            role="tabpanel"
+            id="automation-panel-drafts"
+            aria-labelledby="automation-tab-drafts"
+            hidden={tab !== "drafts"}
+          >
+            {tab === "drafts" ? (
+              <DraftColumn
+                drafts={activeDrafts}
+                generating={generatingIdeaId != null || generatingSuggestionId != null}
+                onGoIdeas={() => setTab("ideas")}
+              />
+            ) : null}
+          </div>
+
+          <div
+            role="tabpanel"
+            id="automation-panel-publish"
+            aria-labelledby="automation-tab-publish"
+            hidden={tab !== "publish"}
+          >
+            {tab === "publish" ? (
+              <PublishColumn
+                drafts={publishDrafts}
+                busy={busy}
+                onMarkExported={(id) => void markExported(id)}
+                onGoDrafts={() => setTab("drafts")}
+              />
+            ) : null}
           </div>
         </>
       ) : null}
