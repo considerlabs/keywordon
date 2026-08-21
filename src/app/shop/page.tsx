@@ -144,6 +144,7 @@ export default function ShopPage() {
               ["대량 조회", (p: PlanId) => (PLANS[p].limits.bulkMax || "-")],
               ["기회지수", (p: PlanId) => (PLANS[p].limits.opportunityScore ? "제공" : "-")],
               ["Copilot AI", (p: PlanId) => (PLANS[p].limits.copilot ? `${PLANS[p].limits.aiMonthly}회` : "-")],
+              ["급상승 트렌드", (p: PlanId) => (PLANS[p].limits.trendAccess ? "제공" : "-")],
               ["사이트 진단", (p: PlanId) => (PLANS[p].limits.siteDiagnosis || "-")],
             ].map(([label, render]) => (
               <tr key={String(label)} className="border-t border-black/5">
