@@ -44,12 +44,12 @@ function serializePersona(persona: NonNullable<Awaited<ReturnType<typeof getPers
 
 export async function GET() {
   const authContext = await getAuthContext();
+  if (!authContext.userId || !authContext.user) {
+    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  }
   const feature = assertFeature(authContext.plan, "blogAnalysis", "블로그 분석");
   if (!feature.ok) {
     return NextResponse.json({ error: feature.error }, { status: 403 });
-  }
-  if (!authContext.userId || !authContext.user) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
   try {

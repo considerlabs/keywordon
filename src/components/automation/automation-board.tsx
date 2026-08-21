@@ -35,14 +35,6 @@ type Draft = {
 
 type BoardStatus = "loading" | "ready" | "login" | "plan" | "error" | "quota";
 
-const quotaUsage = {
-  aiUsed: 1,
-  aiLimit: 1,
-  aiRemaining: 0,
-  aiPercent: 100,
-  aiIncluded: true,
-};
-
 export function AutomationBoard() {
   const [status, setStatus] = useState<BoardStatus>("loading");
   const [message, setMessage] = useState("");
@@ -216,6 +208,14 @@ export function AutomationBoard() {
   const activeDrafts = drafts.filter((d) => d.status === "draft" || d.status === "ready");
   const publishDrafts = drafts.filter((d) => d.status === "ready" || d.status === "exported");
 
+  const quotaUsage = {
+    aiUsed: dailyUsed,
+    aiLimit: Math.max(dailyLimit, 1),
+    aiRemaining: Math.max(0, dailyLimit - dailyUsed),
+    aiPercent: dailyLimit > 0 ? Math.round((dailyUsed / dailyLimit) * 100) : 100,
+    aiIncluded: dailyLimit > 0,
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-5 py-10">
       <header className="mb-8">
@@ -259,7 +259,7 @@ export function AutomationBoard() {
         />
       ) : null}
 
-      {status === "plan" ? <PlanGate featureLabel="AI 자동화" planName="무료" /> : null}
+      {status === "plan" ? <PlanGate featureLabel="AI 자동화" planName="베이직" /> : null}
 
       {status === "quota" ? (
         <QuotaBanner usage={quotaUsage} href="/account/usage" />

@@ -43,32 +43,51 @@ export function ShortformEditor({ projectId }: ShortformEditorProps) {
   const load = useCallback(async () => {
     setMessage("");
     try {
-      const response = await fetch(`/api/shortform/${projectId}`);
-      if (response.status === 401) {
+      const [detailRes, listRes] = await Promise.all([
+        fetch(`/api/shortform/${projectId}`),
+        fetch("/api/shortform"),
+      ]);
+
+      if (detailRes.status === 401 || listRes.status === 401) {
         setStatus("login");
         return;
       }
-      if (response.status === 403) {
+      if (detailRes.status === 403 || listRes.status === 403) {
         setStatus("plan");
         return;
       }
-      if (response.status === 404) {
+      if (detailRes.status === 404) {
         setStatus("error");
         setMessage("프로젝트를 찾을 수 없습니다.");
         return;
       }
-      if (!response.ok) {
-        const data = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!detailRes.ok) {
+        const data = (await detailRes.json().catch(() => ({}))) as { error?: string };
         setStatus("error");
         setMessage(data.error ?? "프로젝트를 불러오지 못했습니다.");
         return;
       }
-      const data = (await response.json()) as { project: Project };
+
+      const data = (await detailRes.json()) as { project: Project };
       setProject(data.project);
       setTitle(data.project.title);
       if (data.project.script) {
         setScript(data.project.script);
       }
+
+      if (listRes.ok) {
+        const list = (await listRes.json()) as {
+          monthlyUsed: number;
+          monthlyLimit: number;
+        };
+        setMonthlyUsed(list.monthlyUsed);
+        setMonthlyLimit(list.monthlyLimit);
+        if (list.monthlyLimit <= 0) {
+          setStatus("plan");
+          return;
+        }
+      }
+
       setStatus("ready");
     } catch {
       setStatus("error");

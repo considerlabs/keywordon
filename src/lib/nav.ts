@@ -60,7 +60,6 @@ export const TOP_NAV: NavGroup[] = [
     id: "shortform",
     label: "숏폼",
     href: "/shortform",
-    badge: "new",
   },
   {
     id: "resources",

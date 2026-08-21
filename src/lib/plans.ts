@@ -91,7 +91,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       siteDiagnosis: 0,
       aiMonthly: 20,
       automationIdeasDaily: 3,
-      shortformMonthly: 0,
+      shortformMonthly: 2,
       postAuditMonthly: 1,
       personaMonthly: 1,
       dataYears: 1,

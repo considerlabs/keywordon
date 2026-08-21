@@ -41,6 +41,25 @@ describe("POST /api/automation/ideas", () => {
     mocks.countIdeasCreatedOn.mockResolvedValue(0);
   });
 
+  it("returns 401 for guests before plan checks", async () => {
+    mocks.getAuthContext.mockResolvedValue({
+      userId: null,
+      user: null,
+      plan: { limits: { automationIdeasDaily: 0, copilot: false } },
+    });
+
+    const response = await POST(
+      new Request("https://keywordon.test/api/automation/ideas", {
+        method: "POST",
+        body: JSON.stringify({ title: "새 글감" }),
+      }) as Parameters<typeof POST>[0],
+    );
+
+    expect(response.status).toBe(401);
+    expect(mocks.assertFeature).not.toHaveBeenCalled();
+    expect(mocks.insertIdea).not.toHaveBeenCalled();
+  });
+
   it("rejects empty title before insert", async () => {
     const response = await POST(
       new Request("https://keywordon.test/api/automation/ideas", {

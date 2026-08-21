@@ -39,8 +39,8 @@ describe("TOP_NAV", () => {
     }
   });
 
-  it("marks shortform with new badge", () => {
-    expect(TOP_NAV.find((g) => g.id === "shortform")?.badge).toBe("new");
+  it("does not mark shortform with new badge", () => {
+    expect(TOP_NAV.find((g) => g.id === "shortform")?.badge).toBeUndefined();
   });
 
   it("uses hover mega-menu copy with descriptions on product children", () => {

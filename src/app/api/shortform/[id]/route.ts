@@ -35,12 +35,12 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, context: RouteContext) {
   const authContext = await getAuthContext();
+  if (!authContext.userId || !authContext.user) {
+    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  }
   const feature = assertFeature(authContext.plan, "copilot", "Copilot AI");
   if (!feature.ok) {
     return NextResponse.json({ error: feature.error }, { status: 403 });
-  }
-  if (!authContext.userId || !authContext.user) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
   const { id: rawId } = await context.params;
@@ -62,12 +62,12 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   const authContext = await getAuthContext();
+  if (!authContext.userId || !authContext.user) {
+    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  }
   const feature = assertFeature(authContext.plan, "copilot", "Copilot AI");
   if (!feature.ok) {
     return NextResponse.json({ error: feature.error }, { status: 403 });
-  }
-  if (!authContext.userId || !authContext.user) {
-    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
   const { id: rawId } = await context.params;
