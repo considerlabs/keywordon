@@ -1,6 +1,7 @@
 import {
   integer,
   jsonb,
+  numeric,
   pgTable,
   serial,
   text,
@@ -123,6 +124,17 @@ export const postAudits = pgTable("post_audits", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const keywordSnapshots = pgTable("keyword_snapshots", {
+  id: serial("id").primaryKey(),
+  keyword: text("keyword").notNull(),
+  engine: text("engine").notNull().default("naver"),
+  rank: integer("rank"),
+  monthlyVolume: integer("monthly_volume"),
+  changeRate: numeric("change_rate"),
+  bucketHour: timestamp("bucket_hour").notNull(),
+  capturedAt: timestamp("captured_at").defaultNow().notNull(),
+});
+
 export type UserRow = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type AutomationIdeaRow = typeof automationIdeas.$inferSelect;
@@ -130,3 +142,5 @@ export type AutomationDraftRow = typeof automationDrafts.$inferSelect;
 export type ShortformProjectRow = typeof shortformProjects.$inferSelect;
 export type BlogPersonaRow = typeof blogPersonas.$inferSelect;
 export type PostAuditRow = typeof postAudits.$inferSelect;
+export type KeywordSnapshotRow = typeof keywordSnapshots.$inferSelect;
+export type NewKeywordSnapshot = typeof keywordSnapshots.$inferInsert;
