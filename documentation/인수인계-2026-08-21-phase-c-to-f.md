@@ -1,8 +1,9 @@
 # KeywordOn 인수인계 — 2026-08-21 Phase C~F (스펙 전 Phase 완주)
 
 > **대상:** 다음 세션 에이전트 / 휴먼  
-> **기준:** `main` @ `263145f` · PR #2~#5 MERGED  
-> **선행:** Phase A·B — [`인수인계-2026-08-21-phase-a.md`](./인수인계-2026-08-21-phase-a.md), [`인수인계-2026-08-21-phase-b.md`](./인수인계-2026-08-21-phase-b.md)
+> **기준:** `main` @ `edbff62` · PR #2~#5 MERGED · 기획/img 커밋 포함  
+> **선행:** Phase A·B — [`인수인계-2026-08-21-phase-a.md`](./인수인계-2026-08-21-phase-a.md), [`인수인계-2026-08-21-phase-b.md`](./인수인계-2026-08-21-phase-b.md)  
+> **최종 요약:** [`인수인계-2026-08-21-final.md`](./인수인계-2026-08-21-final.md)
 
 마스터: [`인수인계.md`](./인수인계.md)
 
@@ -18,6 +19,7 @@
 | D 숏폼 | [#3](https://github.com/considerlabs/keywordon/pull/3) | `1fc0c37` | URL→대본→내보내기 |
 | E 진단·페르소나·순위 | [#4](https://github.com/considerlabs/keywordon/pull/4) | `dffdaa9` | 허용 URL 진단, persona→write |
 | F 트렌드·계산·하드닝 | [#5](https://github.com/considerlabs/keywordon/pull/5) | `263145f` | 스냅샷·계산기·RPM |
+| 기획·참고 이미지 정리 | — | `edbff62` | `docs/00`·`1~4`·`img/` 커밋 |
 
 테스트: `npm test` → **78** passed.
 
@@ -92,4 +94,5 @@ AI 생성은 공통 `aiMonthly` + `tryConsumeAiUsage` (검증 후 차감).
 - 알림톡 실발송, 페르소나 비동기 잡 큐 고도화
 - 전체 `npm run lint` (기존 shop hooks 이슈 가능)
 
-스펙 Phase 드롭 없이 A~F 구현 완료. 다음 작업은 운영 하드닝·실데이터·인수인계 운영 검증이다.
+스펙 Phase 드롭 없이 A~F 구현 완료. 기획 원본·판다랭크 `img/`도 `main`에 있음.  
+다음 작업은 운영 하드닝·실데이터·배포 검증 — [`인수인계-2026-08-21-final.md`](./인수인계-2026-08-21-final.md).
