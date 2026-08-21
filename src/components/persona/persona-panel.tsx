@@ -196,7 +196,8 @@ export function PersonaPanel() {
         </p>
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold">페르소나</h1>
         <p className="mt-2 text-[var(--muted)]">
-          블로그 URL 또는 글 본문으로 나만의 문체·구조·독자층을 학습해 글쓰기 AI에 주입합니다.
+          블로그 홈·글 URL 또는 본문으로 문체·구조·독자층을 학습해 글쓰기 AI에 주입합니다.
+          네이버/티스토리 홈 URL은 최근 글을 자동으로 모읍니다.
         </p>
       </div>
 

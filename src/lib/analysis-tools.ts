@@ -17,6 +17,7 @@ export type RssItem = {
   publishedAt: string;
   category: string;
   publishedMs: number;
+  description: string;
 };
 
 export function resolveBlogFeed(raw: string): BlogFeedTarget {
@@ -96,6 +97,10 @@ export function parseRssItems(xml: string): RssItem[] {
     if (!title) continue;
     const link = rssTagValue(block, "link") || rssTagValue(block, "guid");
     const category = rssTagValue(block, "category");
+    const description = rssTagValue(block, "description")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
     const pubRaw =
       rssTagValue(block, "pubDate") ||
       rssTagValue(block, "dc:date") ||
@@ -109,6 +114,7 @@ export function parseRssItems(xml: string): RssItem[] {
       title,
       link,
       category,
+      description,
       publishedAt,
       publishedMs: Number.isFinite(publishedMs) ? publishedMs : 0,
     });

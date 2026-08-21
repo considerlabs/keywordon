@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   tryConsumeAiUsage: vi.fn(),
-  fetchAllowedUrl: vi.fn(),
+  collectPersonaSource: vi.fn(),
   countPersonaAnalyzesThisMonth: vi.fn(),
   upsertPersonaForAnalysis: vi.fn(),
   logPersonaAnalyzeEvent: vi.fn(),
@@ -25,8 +25,11 @@ vi.mock("@/lib/quota", () => ({
 }));
 
 vi.mock("@/lib/ssrf", () => ({
-  fetchAllowedUrl: mocks.fetchAllowedUrl,
   SsrfError: class SsrfError extends Error {},
+}));
+
+vi.mock("@/lib/persona/source", () => ({
+  collectPersonaSource: mocks.collectPersonaSource,
 }));
 
 vi.mock("@/lib/persona/repository", () => ({
@@ -41,7 +44,7 @@ describe("POST /api/persona/analyze", () => {
   beforeEach(() => {
     mocks.tryConsumeAiUsage.mockReset();
     mocks.tryConsumeAiUsage.mockResolvedValue({ ok: true });
-    mocks.fetchAllowedUrl.mockReset();
+    mocks.collectPersonaSource.mockReset();
     mocks.countPersonaAnalyzesThisMonth.mockReset();
     mocks.countPersonaAnalyzesThisMonth.mockResolvedValue(0);
     mocks.upsertPersonaForAnalysis.mockReset();
@@ -63,7 +66,7 @@ describe("POST /api/persona/analyze", () => {
 
   it("rejects SSRF URL before consuming AI usage", async () => {
     const { SsrfError } = await import("@/lib/ssrf");
-    mocks.fetchAllowedUrl.mockRejectedValue(new SsrfError("허용되지 않음"));
+    mocks.collectPersonaSource.mockRejectedValue(new SsrfError("허용되지 않음"));
 
     const response = await POST(
       new Request("https://keywordon.test/api/persona/analyze", {
@@ -86,7 +89,9 @@ describe("POST /api/persona/analyze", () => {
     const response = await POST(
       new Request("https://keywordon.test/api/persona/analyze", {
         method: "POST",
-        body: JSON.stringify({ posts: ["첫 번째 샘플 글 본문입니다."] }),
+        body: JSON.stringify({
+          posts: ["첫 번째 샘플 글 본문입니다. ".repeat(20)],
+        }),
       }) as Parameters<typeof POST>[0],
     );
 

@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { tryConsumeAiUsage } from "@/lib/db/users";
 import { assertFeature } from "@/lib/quota";
-import { fetchAllowedUrl, SsrfError } from "@/lib/ssrf";
+import { SsrfError } from "@/lib/ssrf";
 import { assertPersonaMonthlyLimit, monthKey } from "@/lib/persona/monthly";
+import { collectPersonaSource } from "@/lib/persona/source";
 import {
   countPersonaAnalyzesThisMonth,
   logPersonaAnalyzeEvent,
@@ -53,19 +54,26 @@ export async function POST(request: NextRequest) {
 
   if (!sourceText && blogUrl) {
     try {
-      const fetched = await fetchAllowedUrl(blogUrl);
-      sourceText = fetched.text;
-      resolvedUrl = fetched.url.toString();
+      const collected = await collectPersonaSource(blogUrl);
+      sourceText = collected.text;
+      resolvedUrl = collected.displayUrl;
     } catch (error) {
       const message =
-        error instanceof SsrfError ? error.message : "URL에서 본문을 불러오지 못했습니다.";
+        error instanceof SsrfError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "URL에서 본문을 불러오지 못했습니다.";
       return NextResponse.json({ error: message }, { status: 400 });
     }
   }
 
-  if (!sourceText.trim()) {
+  if (!sourceText.trim() || sourceText.trim().length < 200) {
     return NextResponse.json(
-      { error: "블로그 URL 또는 글 본문을 1개 이상 입력해 주세요." },
+      {
+        error:
+          "분석할 본문이 부족합니다. 블로그 URL(홈/글)을 확인하거나 대표 글 본문을 붙여넣어 주세요.",
+      },
       { status: 400 },
     );
   }
