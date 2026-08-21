@@ -3,6 +3,14 @@ import { getAuthContext } from "@/lib/auth";
 import { assertFeature } from "@/lib/quota";
 import { tryConsumeAiUsage } from "@/lib/db/users";
 import { resolveKeywordAnalysis } from "@/lib/providers/keyword-data";
+import {
+  buildWritePrompt,
+  CHAR_COUNTS,
+  normalizeKeywords,
+  POST_TYPES,
+  trimWriteField,
+} from "@/lib/write/prompt";
+import { getActivePersona } from "@/lib/write/persona";
 
 // Absolute URL — do not interpolate, do not use gemini-2.0-flash
 const GEMINI_ENDPOINT =
@@ -64,33 +72,65 @@ export async function POST(request: NextRequest) {
 
   const body = (await request.json()) as {
     keyword?: string;
+    keywords?: string[];
+    title?: string;
+    postType?: string;
+    charCount?: number;
     tone?: string;
     intent?: string;
+    emphasis?: string;
+    usePersona?: boolean;
+    flags?: {
+      useLatestSearch?: boolean;
+      hashtags?: boolean;
+      seoInsights?: boolean;
+    };
   };
 
-  const keyword = body.keyword?.trim();
-  if (!keyword) {
+  const keyword = typeof body.keyword === "string" ? trimWriteField(body.keyword) : "";
+  const keywords = normalizeKeywords(body.keywords);
+  const primaryKeyword = keywords[0] ?? keyword;
+  if (!primaryKeyword) {
     return NextResponse.json({ error: "키워드를 입력해 주세요." }, { status: 400 });
   }
 
-  const tone = body.tone ?? "전문적이면서 친근한";
-  const intent = body.intent ?? "블로그 포스팅";
-  const { data } = await resolveKeywordAnalysis(keyword, "naver");
-
-  const system =
-    "당신은 한국어 SEO·콘텐츠 마케터입니다. 검색 의도를 반영한 완성도 높은 글을 작성하고, 과장 광고 표현은 피합니다.";
-  const prompt = `키워드: ${keyword}
-의도: ${intent}
-톤: ${tone}
-월간 검색량: ${data.monthlyVolume}
-카테고리: ${data.category}/${data.subcategory}
-연관어: ${data.relatedInternal
-  .slice(0, 8)
-  .map((item) => item.keyword)
-  .join(", ")}
-
-위 정보를 바탕으로 ${intent}용 한국어 초안을 작성하세요.
-구성: 제목 후보 3개, 서론, 본문(소제목 포함), 결론, SEO 메타 설명 1개.`;
+  const postType = typeof body.postType === "string" ? trimWriteField(body.postType) : "";
+  const intent = typeof body.intent === "string" ? trimWriteField(body.intent) : "";
+  const postTypeLabel =
+    POST_TYPES.find((item) => item.id === postType)?.label || intent || "블로그 포스팅";
+  const charCount =
+    typeof body.charCount === "number" &&
+    CHAR_COUNTS.includes(body.charCount as (typeof CHAR_COUNTS)[number])
+      ? body.charCount
+      : 1000;
+  const title = typeof body.title === "string" ? trimWriteField(body.title) : "";
+  const tone =
+    (typeof body.tone === "string" ? trimWriteField(body.tone) : "") ||
+    "전문적이면서 친근한";
+  const emphasis = typeof body.emphasis === "string" ? trimWriteField(body.emphasis) : "";
+  const flags = {
+    useLatestSearch: body.flags?.useLatestSearch === true,
+    hashtags: body.flags?.hashtags === true,
+    seoInsights: body.flags?.seoInsights === true,
+  };
+  const { data } = await resolveKeywordAnalysis(primaryKeyword, "naver");
+  const personaBlock =
+    body.usePersona === true ? await getActivePersona(authContext.user.id) : null;
+  const { system, user: prompt } = buildWritePrompt({
+    postTypeLabel,
+    title,
+    keywords: keywords.length > 0 ? keywords : [primaryKeyword],
+    charCount,
+    tone,
+    emphasis,
+    flags,
+    keywordStats: {
+      monthlyVolume: data.monthlyVolume,
+      category: data.category,
+      related: data.relatedInternal.slice(0, 8).map((item) => item.keyword),
+    },
+    personaBlock,
+  });
 
   const geminiResponse = await fetch(`${GEMINI_ENDPOINT}?key=${encodeURIComponent(apiKey)}`, {
     method: "POST",
