@@ -5,7 +5,6 @@ type FeaturePlaceholderProps = {
   eyebrow: string;
   title: string;
   description: string;
-  showCreatorSubnav?: boolean;
 };
 
 export function FeaturePlaceholder({

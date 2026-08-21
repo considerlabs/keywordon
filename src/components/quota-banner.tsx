@@ -1,16 +1,17 @@
 import Link from "next/link";
+import type { UsageSummary } from "@/lib/account/usage-summary";
 
 type QuotaBannerProps = {
-  aiUsed: number;
-  aiLimit: number;
+  usage: Pick<
+    UsageSummary,
+    "aiUsed" | "aiLimit" | "aiRemaining" | "aiPercent" | "aiIncluded"
+  >;
   href?: string;
 };
 
-export function QuotaBanner({ aiUsed, aiLimit, href }: QuotaBannerProps) {
-  const aiRemaining = Math.max(0, aiLimit - aiUsed);
-  const aiPercent =
-    aiLimit <= 0 ? 100 : Math.min(100, Math.round((aiUsed / aiLimit) * 100));
-  const shouldShow = aiLimit <= 0 || aiRemaining <= 5 || aiPercent >= 80;
+export function QuotaBanner({ usage, href }: QuotaBannerProps) {
+  const shouldShow =
+    !usage.aiIncluded || usage.aiRemaining <= 5 || usage.aiPercent >= 80;
 
   if (!shouldShow) return null;
 
@@ -21,15 +22,21 @@ export function QuotaBanner({ aiUsed, aiLimit, href }: QuotaBannerProps) {
     >
       <div className="flex items-center justify-between gap-4 text-sm">
         <span className="font-semibold text-[var(--ink)]">
-          이번 달 AI {aiUsed}/{aiLimit}
+          {usage.aiIncluded
+            ? `이번 달 AI ${usage.aiUsed}/${usage.aiLimit}`
+            : "AI 생성 플랜 미포함"}
         </span>
-        <span className="text-[var(--accent)]">사용량 보기</span>
+        <span className="text-[var(--accent)]">
+          {usage.aiIncluded ? "사용량 보기" : "플랜 보기"}
+        </span>
       </div>
       <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--line)]">
-        <div
-          className="h-full rounded-full bg-[var(--accent)]"
-          style={{ width: `${aiPercent}%` }}
-        />
+        {usage.aiIncluded ? (
+          <div
+            className="h-full rounded-full bg-[var(--accent)]"
+            style={{ width: `${usage.aiPercent}%` }}
+          />
+        ) : null}
       </div>
     </Link>
   );

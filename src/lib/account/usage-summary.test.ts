@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildUsageSummary } from "./usage-summary";
 
 describe("buildUsageSummary", () => {
-  it("computes remaining and percent safely when limit is 0", () => {
+  it("marks a zero limit as not included without reporting a full bar", () => {
     const s = buildUsageSummary({
       planName: "비회원",
       aiUsedMonth: 0,
@@ -11,7 +11,8 @@ describe("buildUsageSummary", () => {
       googleMonthly: 0,
     });
     expect(s.aiRemaining).toBe(0);
-    expect(s.aiPercent).toBe(100);
+    expect(s.aiPercent).toBe(0);
+    expect(s.aiIncluded).toBe(false);
     expect(s.exhausted).toBe(true);
   });
 
@@ -25,6 +26,7 @@ describe("buildUsageSummary", () => {
     });
     expect(s.aiRemaining).toBe(60);
     expect(s.aiPercent).toBe(40);
+    expect(s.aiIncluded).toBe(true);
     expect(s.exhausted).toBe(false);
   });
 });

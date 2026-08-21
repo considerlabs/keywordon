@@ -12,7 +12,8 @@ type UsageCardProps = {
 };
 
 function UsageCard({ title, used, limit, remaining }: UsageCardProps) {
-  const percent = limit <= 0 ? 100 : Math.min(100, Math.round((used / limit) * 100));
+  const included = limit > 0;
+  const percent = included ? Math.min(100, Math.round((used / limit) * 100)) : 0;
 
   return (
     <article className="rounded-3xl bg-[var(--panel)] p-6 ring-1 ring-black/5">
@@ -20,23 +21,44 @@ function UsageCard({ title, used, limit, remaining }: UsageCardProps) {
         <div>
           <p className="text-sm font-semibold text-[var(--muted)]">{title}</p>
           <p className="mt-3 font-[family-name:var(--font-display)] text-3xl font-bold text-[var(--ink)]">
-            {used}
-            <span className="ml-1 text-lg font-medium text-[var(--muted)]">/ {limit}회</span>
+            {included ? (
+              <>
+                {used}
+                <span className="ml-1 text-lg font-medium text-[var(--muted)]">
+                  / {limit}회
+                </span>
+              </>
+            ) : (
+              <span className="text-lg font-semibold text-[var(--muted)]">
+                플랜 미포함
+              </span>
+            )}
           </p>
         </div>
-        {remaining !== undefined ? (
+        {!included ? (
+          <Link
+            href="/shop"
+            className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-sm font-semibold text-[var(--brand-ink)]"
+          >
+            플랜 보기
+          </Link>
+        ) : remaining !== undefined ? (
           <span className="rounded-full bg-[var(--canvas)] px-3 py-1 text-sm font-semibold text-[var(--ink)]">
             {remaining}회 남음
           </span>
         ) : null}
       </div>
       <div className="mt-6 h-2 overflow-hidden rounded-full bg-[var(--line)]">
-        <div
-          className="h-full rounded-full bg-[var(--brand)]"
-          style={{ width: `${percent}%` }}
-        />
+        {included ? (
+          <div
+            className="h-full rounded-full bg-[var(--brand)]"
+            style={{ width: `${percent}%` }}
+          />
+        ) : null}
       </div>
-      <p className="mt-3 text-sm text-[var(--muted)]">이번 달 사용량 {percent}%</p>
+      <p className="mt-3 text-sm text-[var(--muted)]">
+        {included ? `이번 달 사용량 ${percent}%` : "플랜 미포함"}
+      </p>
     </article>
   );
 }
@@ -87,9 +109,9 @@ export default async function AccountUsagePage() {
         </Link>
       </div>
 
-      {summary.aiPercent >= 80 ? (
+      {!summary.aiIncluded || summary.aiPercent >= 80 ? (
         <div className="mb-6">
-          <QuotaBanner aiUsed={summary.aiUsed} aiLimit={summary.aiLimit} href="/shop" />
+          <QuotaBanner usage={summary} href="/shop" />
         </div>
       ) : null}
 

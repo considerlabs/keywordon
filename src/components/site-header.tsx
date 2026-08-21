@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 import { ChevronDown, Menu, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { isNavActive, TOP_NAV } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,7 @@ export function SiteHeader() {
   const pathname = usePathname();
   const [openId, setOpenId] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     // Navigation changes must close local menus.
@@ -22,8 +23,33 @@ export function SiteHeader() {
     setMobileOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    const closeMenusOnOutsideMouseDown = (event: MouseEvent) => {
+      if (event.target instanceof Node && !headerRef.current?.contains(event.target)) {
+        setOpenId(null);
+        setMobileOpen(false);
+      }
+    };
+    const closeMenusOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpenId(null);
+        setMobileOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", closeMenusOnOutsideMouseDown);
+    document.addEventListener("keydown", closeMenusOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeMenusOnOutsideMouseDown);
+      document.removeEventListener("keydown", closeMenusOnEscape);
+    };
+  }, []);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--line)]/80 bg-[var(--surface)]/85 backdrop-blur-md">
+    <header
+      ref={headerRef}
+      className="sticky top-0 z-40 border-b border-[var(--line)]/80 bg-[var(--surface)]/85 backdrop-blur-md"
+    >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">
         <Link href="/" className="group flex items-center gap-2.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--brand)] text-white shadow-[0_8px_20px_rgba(13,115,119,0.35)] transition group-hover:scale-105">
@@ -78,6 +104,7 @@ export function SiteHeader() {
                           key={item.href}
                           href={item.href}
                           role="menuitem"
+                          onClick={() => setOpenId(null)}
                           className={cn(
                             "flex items-center px-3 py-2 text-sm transition",
                             isNavActive(pathname, item.href)
@@ -167,6 +194,7 @@ export function SiteHeader() {
                       <Link
                         key={item.href}
                         href={item.href}
+                        onClick={() => setMobileOpen(false)}
                         className={cn(
                           "flex rounded-md px-2 py-2 text-sm font-medium transition",
                           isNavActive(pathname, item.href)
@@ -181,6 +209,7 @@ export function SiteHeader() {
                 ) : (
                   <Link
                     href={group.href ?? "/"}
+                    onClick={() => setMobileOpen(false)}
                     className={cn(
                       "flex items-center rounded-md px-2 py-2 text-sm font-semibold transition",
                       group.href && isNavActive(pathname, group.href)
