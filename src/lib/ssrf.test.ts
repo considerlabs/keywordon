@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { assertAllowedUrl, isAllowedHost, SsrfError } from "./ssrf";
+import {
+  assertAllowedUrl,
+  extractBlogText,
+  isAllowedHost,
+  resolveFetchUrl,
+  SsrfError,
+} from "./ssrf";
 
 describe("assertAllowedUrl", () => {
   it("allows blog.naver.com https URLs", () => {
@@ -43,5 +49,58 @@ describe("isAllowedHost", () => {
     expect(isAllowedHost("www.blog.naver.com")).toBe(true);
     expect(isAllowedHost("foo.tistory.com")).toBe(true);
     expect(isAllowedHost("evil.com")).toBe(false);
+  });
+});
+
+describe("resolveFetchUrl", () => {
+  it("rewrites desktop naver path posts to PostView.naver", () => {
+    const input = new URL("https://blog.naver.com/travel_blog/223456789012");
+    const resolved = resolveFetchUrl(input);
+    expect(resolved.hostname).toBe("blog.naver.com");
+    expect(resolved.pathname).toBe("/PostView.naver");
+    expect(resolved.searchParams.get("blogId")).toBe("travel_blog");
+    expect(resolved.searchParams.get("logNo")).toBe("223456789012");
+  });
+
+  it("rewrites mobile naver path posts to PostView.naver", () => {
+    const input = new URL("https://m.blog.naver.com/travel_blog/223456789012");
+    const resolved = resolveFetchUrl(input);
+    expect(resolved.pathname).toBe("/PostView.naver");
+    expect(resolved.searchParams.get("blogId")).toBe("travel_blog");
+    expect(resolved.searchParams.get("logNo")).toBe("223456789012");
+  });
+
+  it("leaves PostView and tistory URLs unchanged", () => {
+    const postView = new URL(
+      "https://blog.naver.com/PostView.naver?blogId=a&logNo=1&redirect=Dlog&widgetTypeCall=true",
+    );
+    expect(resolveFetchUrl(postView).toString()).toBe(postView.toString());
+
+    const tistory = new URL("https://myblog.tistory.com/123");
+    expect(resolveFetchUrl(tistory).toString()).toBe(tistory.toString());
+  });
+});
+
+describe("extractBlogText", () => {
+  it("extracts naver smart editor body so target keywords are preserved", () => {
+    const html = `
+      <html><head><title>셸 제목</title></head>
+      <body>
+        <div id="mainFrame">네이버 블로그 셸</div>
+        <div class="se-main-container">
+          <div class="se-title-text">삿포로 여행 완벽 가이드</div>
+          <p class="se-text-paragraph">첫 문단에 삿포로 여행 팁을 담았습니다.</p>
+        </div>
+      </body></html>
+    `;
+    const text = extractBlogText(html);
+    expect(text).toContain("삿포로 여행");
+    expect(text).toContain("완벽 가이드");
+    expect(text).not.toContain("네이버 블로그 셸");
+  });
+
+  it("falls back to full-page text when article container is missing", () => {
+    const text = extractBlogText("<html><body><p>티스토리 본문 키워드</p></body></html>");
+    expect(text).toContain("티스토리 본문 키워드");
   });
 });

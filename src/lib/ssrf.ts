@@ -60,34 +60,91 @@ export function assertAllowedUrl(raw: string): URL {
   return url;
 }
 
+/**
+ * Desktop `blog.naver.com/{id}/{logNo}` returns an iframe shell without the post body.
+ * Fetch PostView.naver so SEO audit / AI see the real article text.
+ */
+export function resolveFetchUrl(url: URL): URL {
+  const host = normalizeHost(url.hostname);
+  if (host !== "blog.naver.com" && host !== "m.blog.naver.com") {
+    return url;
+  }
+  if (/PostView\.naver/i.test(url.pathname)) {
+    return url;
+  }
+  const match = url.pathname.match(/^\/([A-Za-z0-9_-]+)\/(\d+)\/?$/);
+  if (!match) return url;
+
+  const next = new URL("https://blog.naver.com/PostView.naver");
+  next.searchParams.set("blogId", match[1]);
+  next.searchParams.set("logNo", match[2]);
+  next.searchParams.set("redirect", "Dlog");
+  next.searchParams.set("widgetTypeCall", "true");
+  return next;
+}
+
 export function stripHtml(html: string): string {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&#(\d+);/g, (_, code: string) => String.fromCharCode(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code: string) => String.fromCharCode(parseInt(code, 16)))
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&apos;/gi, "'")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** Prefer Naver SE / postViewArea / article body over chrome/shell HTML. */
+export function extractBlogText(html: string): string {
+  const patterns = [
+    /<div[^>]*class="[^"]*se-main-container[^"]*"[^>]*>([\s\S]*)/i,
+    /<div[^>]*id="postViewArea"[^>]*>([\s\S]*)/i,
+    /<article\b[^>]*>([\s\S]*?)<\/article>/i,
+    /<div[^>]*class="[^"]*(?:entry-content|tt_article_useless_p_margin)[^"]*"[^>]*>([\s\S]*)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (!match?.[1]) continue;
+    const text = stripHtml(match[1].slice(0, 100_000));
+    if (text.length >= 20) {
+      return text.slice(0, 50_000);
+    }
+  }
+
+  return stripHtml(html).slice(0, 50_000);
 }
 
 async function fetchOnce(url: URL): Promise<Response> {
   return fetch(url.toString(), {
     redirect: "manual",
-    headers: { "User-Agent": "KeywordOn/1.0 (+https://keywordon.app)" },
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (compatible; KeywordOn/1.0; +https://keywordon.app)",
+      Accept: "text/html,application/xhtml+xml",
+    },
   });
 }
 
 /** Fetch HTML from an allowlisted URL with one manual redirect hop. */
 export async function fetchAllowedUrl(raw: string): Promise<{ url: URL; text: string }> {
   const initial = assertAllowedUrl(raw);
-  let response = await fetchOnce(initial);
+  const target = resolveFetchUrl(initial);
+  let response = await fetchOnce(target);
 
   if (response.status >= 300 && response.status < 400) {
     const location = response.headers.get("location");
     if (!location) {
       throw new SsrfError("리다이렉트 위치를 확인할 수 없습니다.");
     }
-    const next = assertAllowedUrl(new URL(location, initial).toString());
-    response = await fetchOnce(next);
+    const next = assertAllowedUrl(new URL(location, target).toString());
+    response = await fetchOnce(resolveFetchUrl(next));
   }
 
   if (!response.ok) {
@@ -95,5 +152,5 @@ export async function fetchAllowedUrl(raw: string): Promise<{ url: URL; text: st
   }
 
   const html = await response.text();
-  return { url: initial, text: stripHtml(html).slice(0, 50_000) };
+  return { url: initial, text: extractBlogText(html) };
 }
