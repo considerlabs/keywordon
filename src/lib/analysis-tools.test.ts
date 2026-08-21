@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import {
   analyzeBlog,
+  parsePostTotal,
   parseRssItems,
   resolveBlogFeed,
 } from "./analysis-tools";
@@ -11,6 +12,9 @@ describe("resolveBlogFeed", () => {
     expect(resolved.platform).toBe("naver");
     expect(resolved.feedUrl).toBe("https://rss.blog.naver.com/travel_korea.xml");
     expect(resolved.displayUrl).toBe("https://blog.naver.com/travel_korea");
+    expect(resolved.countUrl).toBe(
+      "https://blog.naver.com/PostList.naver?blogId=travel_korea",
+    );
   });
 
   it("maps naver post URL to the same blog feed", () => {
@@ -59,15 +63,25 @@ describe("parseRssItems", () => {
   });
 });
 
+describe("parsePostTotal", () => {
+  it("reads naver PostList total like '2,582개의 글'", () => {
+    expect(parsePostTotal('<h4>전체보기</strong></a> 2,582개의 글</h4>')).toBe(2582);
+  });
+
+  it("reads mobile postCount json field", () => {
+    expect(parsePostTotal('{"postCount":2602,"marketPostCount":0}')).toBe(2602);
+  });
+});
+
 describe("analyzeBlog", () => {
   beforeEach(() => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        headers: new Headers(),
-        text: async () => `<?xml version="1.0"?>
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        const body = url.includes("PostList.naver")
+          ? `<html><body>전체보기</strong></a> 1,234개의 글</body></html>`
+          : `<?xml version="1.0"?>
           <rss><channel>
             <item>
               <title><![CDATA[삿포로 여행 코스]]></title>
@@ -87,7 +101,13 @@ describe("analyzeBlog", () => {
               <category><![CDATA[카페]]></category>
               <pubDate>Wed, 01 Jan 2025 10:00:00 +0900</pubDate>
             </item>
-          </channel></rss>`,
+          </channel></rss>`;
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          text: async () => body,
+        };
       }),
     );
   });
@@ -96,14 +116,14 @@ describe("analyzeBlog", () => {
     vi.unstubAllGlobals();
   });
 
-  it("builds a report from live RSS instead of HMAC placeholders", async () => {
+  it("uses PostList total for postCount instead of RSS item cap", async () => {
     const report = await analyzeBlog("https://blog.naver.com/travel_korea");
 
     expect(report.platform).toBe("naver");
-    expect(report.metrics.postCount).toBe(3);
+    expect(report.metrics.postCount).toBe(1234);
     expect(report.metrics.monthlyPosts).toBeGreaterThanOrEqual(2);
     expect(report.topPosts[0]?.title).toContain("삿포로");
     expect(report.topPosts.some((post) => post.title.startsWith("인기 포스팅"))).toBe(false);
-    expect(report.summary).toMatch(/RSS|네이버/);
+    expect(report.summary).toMatch(/1,234|1234/);
   });
 });

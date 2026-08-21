@@ -101,7 +101,7 @@ export default function BlogPage() {
             <p className="mt-2 text-[var(--muted)]">{report.summary}</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {[
-                ["RSS 최근 글", report.metrics.postCount],
+                ["발행 글", report.metrics.postCount],
                 ["최근 30일 발행", report.metrics.monthlyPosts],
                 ["추정 방문자", formatNumber(report.metrics.estimatedMonthlyVisitors)],
               ].map(([label, value]) => (

@@ -7,6 +7,8 @@ export type BlogFeedTarget = {
   platform: BlogPlatform;
   feedUrl: string;
   displayUrl: string;
+  /** Naver PostList (or similar) page that exposes total post count. */
+  countUrl: string | null;
 };
 
 export type RssItem = {
@@ -58,6 +60,7 @@ export function resolveBlogFeed(raw: string): BlogFeedTarget {
       platform: "naver",
       feedUrl: `https://rss.blog.naver.com/${blogId}.xml`,
       displayUrl: `https://blog.naver.com/${blogId}`,
+      countUrl: `https://blog.naver.com/PostList.naver?blogId=${blogId}`,
     };
   }
 
@@ -66,6 +69,7 @@ export function resolveBlogFeed(raw: string): BlogFeedTarget {
       platform: "tistory",
       feedUrl: `https://${host}/rss`,
       displayUrl: `https://${host}`,
+      countUrl: `https://${host}/`,
     };
   }
 
@@ -113,17 +117,33 @@ export function parseRssItems(xml: string): RssItem[] {
   return items.sort((a, b) => b.publishedMs - a.publishedMs);
 }
 
+/** Parse total published posts from Naver PostList / mobile HTML. */
+export function parsePostTotal(html: string): number | null {
+  const labeled = html.match(/([\d,]+)\s*개의\s*글/);
+  if (labeled) {
+    const n = Number(labeled[1].replace(/,/g, ""));
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  const json = html.match(/"postCount"\s*:\s*(\d+)/);
+  if (json) {
+    const n = Number(json[1]);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return null;
+}
+
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, Math.round(n)));
 }
 
-function scoreFromItems(items: RssItem[]) {
+function scoreFromItems(items: RssItem[], totalPosts?: number | null) {
   const now = Date.now();
   const monthAgo = now - 30 * 86_400_000;
   const ninetyAgo = now - 90 * 86_400_000;
   const monthlyPosts = items.filter((item) => item.publishedMs >= monthAgo).length;
   const recent90 = items.filter((item) => item.publishedMs >= ninetyAgo).length;
-  const postCount = items.length;
+  // RSS is capped (~50); prefer PostList/mobile total when available
+  const postCount = Math.max(totalPosts ?? 0, items.length);
 
   const categories = items.map((item) => item.category).filter(Boolean);
   const uniqueCats = new Set(categories);
@@ -177,6 +197,17 @@ function scoreFromItems(items: RssItem[]) {
   };
 }
 
+async function fetchPostTotal(countUrl: string | null): Promise<number | null> {
+  if (!countUrl) return null;
+  try {
+    assertAllowedUrl(countUrl);
+    const fetched = await fetchAllowedRaw(countUrl);
+    return parsePostTotal(fetched.text);
+  } catch {
+    return null;
+  }
+}
+
 export async function analyzeBlog(url: string) {
   const target = resolveBlogFeed(url);
   // SSRF gate — feed hosts must stay on the shared allowlist
@@ -197,7 +228,8 @@ export async function analyzeBlog(url: string) {
     throw new Error("RSS에서 게시글을 찾지 못했습니다. 블로그 ID·공개 설정을 확인해 주세요.");
   }
 
-  const scored = scoreFromItems(items);
+  const totalPosts = await fetchPostTotal(target.countUrl);
+  const scored = scoreFromItems(items, totalPosts);
   const topPosts = items.slice(0, 5).map((item) => ({
     title: item.title,
     views: 0,
@@ -206,6 +238,7 @@ export async function analyzeBlog(url: string) {
   }));
 
   const platformLabel = target.platform === "naver" ? "네이버 블로그" : "티스토리";
+  const postLabel = scored.metrics.postCount.toLocaleString("ko-KR");
 
   return {
     url: target.displayUrl,
@@ -214,7 +247,7 @@ export async function analyzeBlog(url: string) {
     metrics: scored.metrics,
     topPosts,
     recommendations: scored.recommendations,
-    summary: `${platformLabel} RSS 최근 ${scored.metrics.postCount}건 기준 종합 ${scored.metrics.overallScore}점 · 최근 30일 ${scored.metrics.monthlyPosts}건 발행`,
+    summary: `${platformLabel} 발행 ${postLabel}건 · 종합 ${scored.metrics.overallScore}점 · 최근 30일 ${scored.metrics.monthlyPosts}건 발행`,
   };
 }
 
