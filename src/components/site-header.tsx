@@ -9,7 +9,7 @@ import { isNavActive, TOP_NAV, type NavGroup } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
 const clerkEnabled = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
-const HOVER_CLOSE_MS = 160;
+const HOVER_CLOSE_MS = 280;
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -231,12 +231,6 @@ function DesktopNavItem({
       className="relative"
       onMouseEnter={onOpen}
       onMouseLeave={onScheduleClose}
-      onFocusCapture={onOpen}
-      onBlurCapture={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-          onScheduleClose();
-        }
-      }}
     >
       <button
         type="button"
@@ -256,55 +250,54 @@ function DesktopNavItem({
         />
       </button>
 
-      <div
-        className={cn(
-          "pointer-events-none absolute left-1/2 top-full z-50 w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 pt-3 opacity-0 transition duration-150",
-          open && "pointer-events-auto opacity-100",
-        )}
-        role="menu"
-        aria-hidden={!open}
-      >
-        <div className="overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--panel)] shadow-[0_24px_60px_rgba(16,24,40,0.14)]">
-          <div className="border-b border-[var(--line)] bg-[var(--canvas)]/70 px-5 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-              {group.label}
-            </p>
-          </div>
-          <div className="grid gap-1 p-2 sm:grid-cols-2">
-            {group.children.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                role="menuitem"
-                tabIndex={open ? 0 : -1}
-                onClick={onClose}
-                className={cn(
-                  "rounded-xl px-3.5 py-3 transition",
-                  isNavActive(pathname, item.href)
-                    ? "bg-[var(--brand-soft)]"
-                    : "hover:bg-[var(--canvas)]",
-                )}
-              >
-                <span
+      {open ? (
+        <div
+          className="absolute left-0 top-full z-50 w-[min(36rem,calc(100vw-2rem))]"
+          role="menu"
+        >
+          {/* Bridge: overlaps trigger so cursor never leaves the hover zone */}
+          <div className="h-3 w-full" aria-hidden />
+          <div className="-mt-3 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--panel)] shadow-[0_24px_60px_rgba(16,24,40,0.14)]">
+            <div className="border-b border-[var(--line)] bg-[var(--canvas)]/70 px-5 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                {group.label}
+              </p>
+            </div>
+            <div className="grid gap-1 p-2 sm:grid-cols-2">
+              {group.children.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  role="menuitem"
+                  onClick={onClose}
                   className={cn(
-                    "block text-sm font-semibold",
+                    "rounded-xl px-3.5 py-3 transition",
                     isNavActive(pathname, item.href)
-                      ? "text-[var(--brand-ink)]"
-                      : "text-[var(--ink)]",
+                      ? "bg-[var(--brand-soft)]"
+                      : "hover:bg-[var(--canvas)]",
                   )}
                 >
-                  {item.label}
-                </span>
-                {item.description ? (
-                  <span className="mt-1 block text-xs leading-relaxed text-[var(--muted)]">
-                    {item.description}
+                  <span
+                    className={cn(
+                      "block text-sm font-semibold",
+                      isNavActive(pathname, item.href)
+                        ? "text-[var(--brand-ink)]"
+                        : "text-[var(--ink)]",
+                    )}
+                  >
+                    {item.label}
                   </span>
-                ) : null}
-              </Link>
-            ))}
+                  {item.description ? (
+                    <span className="mt-1 block text-xs leading-relaxed text-[var(--muted)]">
+                      {item.description}
+                    </span>
+                  ) : null}
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
