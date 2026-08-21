@@ -44,9 +44,15 @@ export async function POST(request: NextRequest) {
       }
     } else {
       const actor = authContext.userId ?? request.headers.get("x-forwarded-for") ?? "guest";
-      const rate = await checkNaverRateLimit(actor, authContext.plan);
-      if (!rate.ok) {
-        return NextResponse.json({ error: rate.error }, { status: 429 });
+      const uniqueKeywordCount = [...new Set(keywords.map((k) => k.trim()).filter(Boolean))].slice(
+        0,
+        50,
+      ).length;
+      for (let i = 0; i < uniqueKeywordCount; i += 1) {
+        const rate = await checkNaverRateLimit(actor, authContext.plan);
+        if (!rate.ok) {
+          return NextResponse.json({ error: rate.error }, { status: 429 });
+        }
       }
     }
 

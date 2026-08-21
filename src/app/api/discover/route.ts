@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
-import { applyDiscoverLimits } from "@/lib/quota";
+import { applyDiscoverLimits, checkNaverRateLimit } from "@/lib/quota";
 import { discoverKeywords } from "@/lib/keyword-engine";
 
 export async function GET(request: NextRequest) {
@@ -11,6 +11,11 @@ export async function GET(request: NextRequest) {
       { error: "키워드 발굴은 로그인 후 이용할 수 있습니다." },
       { status: 401 },
     );
+  }
+
+  const rate = await checkNaverRateLimit(authContext.userId, authContext.plan);
+  if (!rate.ok) {
+    return NextResponse.json({ error: rate.error }, { status: 429 });
   }
 
   const seed = request.nextUrl.searchParams.get("q")?.trim() ?? "마케팅";
