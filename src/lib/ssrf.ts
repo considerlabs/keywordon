@@ -225,46 +225,76 @@ export async function assertPublicHttpsUrl(raw: string): Promise<URL> {
 
 const MAX_PUBLIC_BODY = 1_000_000;
 
-function mapPublicFetchError(error: unknown): never {
+function collectErrorText(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
   const cause =
-    error instanceof Error && error.cause instanceof Error ? error.cause.message : "";
-  const combined = `${message} ${cause}`.toLowerCase();
+    error instanceof Error && error.cause instanceof Error
+      ? `${error.cause.message} ${(error.cause as { code?: string }).code ?? ""}`
+      : "";
+  return `${message} ${cause}`.toLowerCase();
+}
+
+function isTlsError(error: unknown): boolean {
+  return /certificate|unable to verify|self[- ]signed|unable to get local issuer|err_tls|ssl|tls/.test(
+    collectErrorText(error),
+  );
+}
+
+function mapPublicFetchError(error: unknown): never {
+  const combined = collectErrorText(error);
   if (combined.includes("abort") || combined.includes("timeout")) {
     throw new SsrfError("사이트 응답 시간이 초과되었습니다.");
-  }
-  if (
-    combined.includes("certificate") ||
-    combined.includes("cert") ||
-    combined.includes("ssl") ||
-    combined.includes("tls")
-  ) {
-    throw new SsrfError("보안 인증서 검증에 실패했습니다.");
   }
   throw new SsrfError(
     "사이트에 연결하지 못했습니다. 도메인이 맞는지, HTTPS로 열리는 사이트인지 확인해 주세요.",
   );
 }
 
-async function fetchPublicOnce(url: URL): Promise<Response> {
-  try {
-    return await fetch(url.toString(), {
+async function fetchPublicOnce(url: URL, relaxTls: boolean): Promise<Response> {
+  const headers = {
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  };
+  if (relaxTls) {
+    const { Agent, fetch: undiciFetch } = await import("undici");
+    return undiciFetch(url.toString(), {
       redirect: "manual",
       signal: AbortSignal.timeout(8_000),
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      },
-    });
+      headers,
+      dispatcher: new Agent({ connect: { rejectUnauthorized: false } }),
+    }) as unknown as Response;
+  }
+  return fetch(url.toString(), {
+    redirect: "manual",
+    signal: AbortSignal.timeout(8_000),
+    headers,
+  });
+}
+
+async function fetchPublicOnceAllowingBadCert(
+  url: URL,
+): Promise<{ response: Response; tlsTrusted: boolean }> {
+  try {
+    return { response: await fetchPublicOnce(url, false), tlsTrusted: true };
   } catch (error) {
-    mapPublicFetchError(error);
+    if (!isTlsError(error)) mapPublicFetchError(error);
+    try {
+      return { response: await fetchPublicOnce(url, true), tlsTrusted: false };
+    } catch (retryError) {
+      mapPublicFetchError(retryError);
+    }
   }
 }
 
-export async function fetchPublicHtml(raw: string): Promise<{ url: URL; html: string }> {
+export async function fetchPublicHtml(
+  raw: string,
+): Promise<{ url: URL; html: string; tlsTrusted: boolean }> {
   let url = await assertPublicHttpsUrl(raw);
-  let response = await fetchPublicOnce(url);
+  let tlsTrusted = true;
+  let fetched = await fetchPublicOnceAllowingBadCert(url);
+  tlsTrusted = tlsTrusted && fetched.tlsTrusted;
+  let response = fetched.response;
 
   for (let hop = 0; hop < 5 && response.status >= 300 && response.status < 400; hop += 1) {
     const location = response.headers.get("location")?.trim();
@@ -274,12 +304,14 @@ export async function fetchPublicHtml(raw: string): Promise<{ url: URL; html: st
     const next = new URL(location, url);
     if (next.protocol === "http:") next.protocol = "https:";
     url = await assertPublicHttpsUrl(next.toString());
-    response = await fetchPublicOnce(url);
+    fetched = await fetchPublicOnceAllowingBadCert(url);
+    tlsTrusted = tlsTrusted && fetched.tlsTrusted;
+    response = fetched.response;
   }
 
   if (!response.ok) {
     throw new SsrfError(`페이지를 불러오지 못했습니다. (${response.status})`);
   }
 
-  return { url, html: (await response.text()).slice(0, MAX_PUBLIC_BODY) };
+  return { url, html: (await response.text()).slice(0, MAX_PUBLIC_BODY), tlsTrusted };
 }

@@ -4,6 +4,14 @@ vi.mock("node:dns/promises", () => ({
   lookup: vi.fn(async () => ({ address: "93.184.216.34", family: 4 })),
 }));
 
+vi.mock("undici", () => ({
+  Agent: class DummyAgent {
+    constructor(_opts: unknown) {}
+  },
+  fetch: vi.fn(),
+}));
+
+import { fetch as undiciFetch } from "undici";
 import {
   assertAllowedUrl,
   assertPublicHttpsUrl,
@@ -159,5 +167,26 @@ describe("fetchPublicHtml", () => {
       }),
     );
     await expect(fetchPublicHtml("https://example.com/")).rejects.toThrow(/연결하지 못했습니다/);
+  });
+
+  it("retries with relaxed TLS after a certificate error and still returns HTML", async () => {
+    const err = new TypeError("fetch failed");
+    (err as Error & { cause: Error }).cause = Object.assign(
+      new Error("unable to verify the first certificate"),
+      { code: "UNABLE_TO_VERIFY_LEAF_SIGNATURE" },
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw err;
+      }),
+    );
+    vi.mocked(undiciFetch).mockResolvedValue(
+      new Response("<html><title>ok</title></html>", { status: 200 }) as never,
+    );
+
+    const result = await fetchPublicHtml("https://example.com/");
+    expect(result.html).toContain("ok");
+    expect(result.tlsTrusted).toBe(false);
   });
 });

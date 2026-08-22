@@ -302,6 +302,7 @@ export function scoreSitePage(input: {
   html: string;
   https: boolean;
   sitemapUrls: number;
+  tlsTrusted?: boolean;
 }) {
   const title = firstTag(input.html, "title");
   const description = metaContent(input.html, "description");
@@ -314,8 +315,12 @@ export function scoreSitePage(input: {
   const issues: string[] = [];
   let health = 20;
 
-  if (input.https) {
+  if (input.https && input.tlsTrusted !== false) {
     health += 15;
+  } else if (input.https) {
+    issues.push(
+      "HTTPS는 열려 있지만 인증서 체인을 신뢰할 수 없습니다. 중간 인증서 설치와 만료일을 확인하세요.",
+    );
   } else {
     issues.push("HTTPS가 아닙니다. SSL 인증서를 적용하세요.");
   }
@@ -392,11 +397,13 @@ export async function diagnoseSite(domainInput: string) {
   if (!domain.startsWith("www.")) homepages.push(`https://www.${domain}/`);
 
   let html: string | null = null;
+  let tlsTrusted = true;
   let lastError: Error | null = null;
   for (const url of homepages) {
     try {
       const fetched = await fetchPublicHtml(url);
       html = fetched.html;
+      tlsTrusted = fetched.tlsTrusted;
       break;
     } catch (error) {
       lastError =
@@ -417,5 +424,5 @@ export async function diagnoseSite(domainInput: string) {
     sitemapUrls = 0;
   }
 
-  return scoreSitePage({ domain, html, https: true, sitemapUrls });
+  return scoreSitePage({ domain, html, https: true, sitemapUrls, tlsTrusted });
 }
