@@ -359,44 +359,55 @@ export async function fetchPublicHtml(
   let url = await assertPublicHttpsUrl(raw);
   let tlsTrusted = true;
   const seen = new Set<string>();
+  let lastBody = "";
 
-  for (let hop = 0; hop < 12; hop += 1) {
-    const key = url.href.replace(/\/$/, "");
+  for (let hop = 0; hop < 15; hop += 1) {
+    const key = url.href.replace(/\/$/, "").toLowerCase();
     if (seen.has(key)) {
-      break;
+      if (looksLikeHtml(lastBody) || lastBody.trim().length > 0) {
+        return { url, html: lastBody.slice(0, MAX_PUBLIC_BODY), tlsTrusted };
+      }
+      throw new SsrfError("사이트가 같은 주소로 리다이렉트를 반복합니다.");
     }
     seen.add(key);
 
     const fetched = await httpsGetAllowingBadCert(url);
     tlsTrusted = tlsTrusted && fetched.tlsTrusted;
     const result = fetched.result;
+    lastBody = result.body;
 
     if (result.status >= 200 && result.status < 300) {
       return { url, html: result.body.slice(0, MAX_PUBLIC_BODY), tlsTrusted };
     }
 
     if (result.status >= 300 && result.status < 400) {
-      if (looksLikeHtml(result.body) && result.body.length > 40) {
+      if (result.location) {
+        try {
+          const next = new URL(result.location, url);
+          if (next.protocol === "http:") next.protocol = "https:";
+          url = await assertPublicHttpsUrl(next.toString());
+          continue;
+        } catch {
+          if (looksLikeHtml(result.body) || result.body.trim()) {
+            return { url, html: result.body.slice(0, MAX_PUBLIC_BODY), tlsTrusted };
+          }
+          throw new SsrfError("리다이렉트 주소를 열 수 없습니다.");
+        }
+      }
+      if (looksLikeHtml(result.body) || result.body.trim()) {
         return { url, html: result.body.slice(0, MAX_PUBLIC_BODY), tlsTrusted };
       }
-      if (!result.location) {
-        throw new SsrfError("리다이렉트 위치를 확인할 수 없습니다.");
-      }
-      const next = new URL(result.location, url);
-      if (next.protocol === "http:") next.protocol = "https:";
-      const nextUrl = await assertPublicHttpsUrl(next.toString());
-      if (nextUrl.href.replace(/\/$/, "") === key) {
-        if (looksLikeHtml(result.body)) {
-          return { url, html: result.body.slice(0, MAX_PUBLIC_BODY), tlsTrusted };
-        }
-        throw new SsrfError("사이트가 같은 주소로 리다이렉트를 반복합니다.");
-      }
-      url = nextUrl;
-      continue;
+      throw new SsrfError("리다이렉트 위치를 확인할 수 없습니다.");
     }
 
+    if (looksLikeHtml(result.body) || result.body.trim().length > 80) {
+      return { url, html: result.body.slice(0, MAX_PUBLIC_BODY), tlsTrusted };
+    }
     throw new SsrfError(`페이지를 불러오지 못했습니다. (${result.status})`);
   }
 
+  if (looksLikeHtml(lastBody) || lastBody.trim()) {
+    return { url, html: lastBody.slice(0, MAX_PUBLIC_BODY), tlsTrusted };
+  }
   throw new SsrfError("사이트가 리다이렉트를 반복해서 페이지를 열 수 없습니다.");
 }

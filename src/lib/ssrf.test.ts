@@ -206,4 +206,14 @@ describe("fetchPublicHtml", () => {
     const result = await fetchPublicHtml("https://example.com/");
     expect(result.html).toContain("환영합니다");
   });
+
+  it("does not throw a 307 status after following redirects", async () => {
+    stubHttps(() => ({
+      status: 307,
+      location: "https://example.com/home",
+      body: "<html><body>이동중</body></html>",
+    }));
+    const result = await fetchPublicHtml("https://example.com/");
+    expect(result.html).toContain("이동중");
+  });
 });
