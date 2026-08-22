@@ -4,6 +4,7 @@ import {
   parsePostTotal,
   parseRssItems,
   resolveBlogFeed,
+  scoreSitePage,
 } from "./analysis-tools";
 
 describe("resolveBlogFeed", () => {
@@ -125,5 +126,56 @@ describe("analyzeBlog", () => {
     expect(report.topPosts[0]?.title).toContain("삿포로");
     expect(report.topPosts.some((post) => post.title.startsWith("인기 포스팅"))).toBe(false);
     expect(report.summary).toMatch(/1,234|1234/);
+  });
+});
+
+describe("scoreSitePage", () => {
+  const healthyHtml = `<!doctype html>
+    <html>
+      <head>
+        <title>제주 여행 가이드</title>
+        <meta name="description" content="제주 여행 코스와 맛집, 교통 팁을 정리한 가이드입니다." />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="canonical" href="https://travel.example/" />
+      </head>
+      <body>
+        <h1>제주 여행 코스</h1>
+        <p>${"여행 본문 ".repeat(40)}</p>
+      </body>
+    </html>`;
+
+  it("extracts on-page keywords from title and h1 instead of placeholder labels", () => {
+    const report = scoreSitePage({
+      domain: "travel.example",
+      html: healthyHtml,
+      https: true,
+      sitemapUrls: 12,
+    });
+
+    expect(report.topKeywords.some((item) => /관련 키워드/.test(item.keyword))).toBe(false);
+    expect(report.topKeywords.some((item) => item.keyword.includes("제주"))).toBe(true);
+    expect(report.metrics.indexedPages).toBe(12);
+    expect(report.metrics.mobileFriendly).toBe(true);
+    expect(report.metrics.https).toBe(true);
+  });
+
+  it("flags missing title, viewport, and http as issues and lowers the health score", () => {
+    const healthy = scoreSitePage({
+      domain: "travel.example",
+      html: healthyHtml,
+      https: true,
+      sitemapUrls: 12,
+    });
+    const weak = scoreSitePage({
+      domain: "travel.example",
+      html: "<html><body><p>ok</p></body></html>",
+      https: false,
+      sitemapUrls: 0,
+    });
+
+    expect(weak.issues.some((issue) => /제목/.test(issue))).toBe(true);
+    expect(weak.issues.some((issue) => /뷰포트|모바일/.test(issue))).toBe(true);
+    expect(weak.issues.some((issue) => /https/i.test(issue))).toBe(true);
+    expect(weak.metrics.healthScore).toBeLessThan(healthy.metrics.healthScore);
   });
 });

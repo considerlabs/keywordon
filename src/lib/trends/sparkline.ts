@@ -30,7 +30,7 @@ export function buildSparklinePolyline(
     .map((point, index) => {
       const x = padding + (index / Math.max(points.length - 1, 1)) * innerW;
       const normalized = (point.value - min) / range;
-      const y = padding + (1 - normalized) * innerH;
+      const y = padding + normalized * innerH;
       return `${x},${y}`;
     })
     .join(" ");

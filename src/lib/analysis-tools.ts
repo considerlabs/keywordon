@@ -1,5 +1,4 @@
-import { createHmac } from "node:crypto";
-import { assertAllowedUrl, fetchAllowedRaw, SsrfError } from "@/lib/ssrf";
+import { assertAllowedUrl, fetchAllowedRaw, fetchPublicHtml, SsrfError } from "@/lib/ssrf";
 
 export type BlogPlatform = "naver" | "tistory";
 
@@ -257,45 +256,155 @@ export async function analyzeBlog(url: string) {
   };
 }
 
-export function diagnoseSite(domainInput: string) {
-  const domain = domainInput
-    .trim()
-    .replace(/^https?:\/\//, "")
-    .replace(/\/.*$/, "");
-  if (!domain) throw new Error("도메인을 입력해 주세요.");
+function firstTag(html: string, tag: string): string {
+  const match = html.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "i"));
+  return (match?.[1] ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
 
-  const seed = createHmac("sha256", "site").update(domain).digest("hex");
-  const n = (offset: number) => parseInt(seed.slice(offset, offset + 4), 16);
+function allTags(html: string, tag: string): string[] {
+  return [...html.matchAll(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "gi"))]
+    .map((match) => (match[1] ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
 
-  const organicKeywords = 80 + (n(0) % 2500);
-  const indexedPages = 20 + (n(4) % 900);
-  const referringDomains = 5 + (n(8) % 400);
-  const health = 40 + (n(12) % 55);
+function metaContent(html: string, name: string): string {
+  const named = new RegExp(
+    `<meta[^>]+(?:name|property)=["']${name}["'][^>]*content=["']([^"']*)["']`,
+    "i",
+  );
+  const contentFirst = new RegExp(
+    `<meta[^>]+content=["']([^"']*)["'][^>]*(?:name|property)=["']${name}["']`,
+    "i",
+  );
+  return (html.match(named)?.[1] ?? html.match(contentFirst)?.[1] ?? "").trim();
+}
 
-  const trafficKeywords = Array.from({ length: 8 }, (_, i) => ({
-    keyword: `${domain.split(".")[0]} 관련 키워드 ${i + 1}`,
-    clicks: 10 + (n(16 + i) % 900),
-    impressions: 100 + (n(20 + i) % 9000),
-    position: Number((1 + (n(24 + i) % 40) + Math.random()).toFixed(1)),
-  }));
+function extractPageKeywords(texts: string[]): { keyword: string; clicks: number; impressions: number; position: number }[] {
+  const counts = new Map<string, number>();
+  for (const text of texts) {
+    for (const raw of text.split(/[\s|/·,.:;~_\-]+/)) {
+      const token = raw.replace(/[^\p{L}\p{N}]+/gu, "");
+      if (token.length < 2) continue;
+      counts.set(token, (counts.get(token) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 8)
+    .map(([keyword, count]) => ({
+      keyword,
+      clicks: count,
+      impressions: count,
+      position: 0,
+    }));
+}
+
+export function scoreSitePage(input: {
+  domain: string;
+  html: string;
+  https: boolean;
+  sitemapUrls: number;
+}) {
+  const title = firstTag(input.html, "title");
+  const description = metaContent(input.html, "description");
+  const viewport = metaContent(input.html, "viewport");
+  const canonical = Boolean(
+    input.html.match(/<link[^>]+rel=["']canonical["']/i),
+  );
+  const h1s = allTags(input.html, "h1");
+  const topKeywords = extractPageKeywords([title, ...h1s]);
+  const issues: string[] = [];
+  let health = 20;
+
+  if (input.https) {
+    health += 15;
+  } else {
+    issues.push("HTTPS가 아닙니다. SSL 인증서를 적용하세요.");
+  }
+
+  if (!title) {
+    issues.push("페이지 제목(title)이 없습니다.");
+  } else {
+    health += title.length >= 10 && title.length <= 60 ? 15 : 8;
+    if (title.length < 10 || title.length > 60) {
+      issues.push("페이지 제목 길이를 10~60자로 조정하세요.");
+    }
+  }
+
+  if (!description) {
+    issues.push("메타 설명(description)이 없습니다.");
+  } else {
+    health += description.length >= 50 && description.length <= 160 ? 15 : 8;
+    if (description.length < 50 || description.length > 160) {
+      issues.push("메타 설명 길이를 50~160자로 조정하세요.");
+    }
+  }
+
+  if (viewport) {
+    health += 15;
+  } else {
+    issues.push("모바일 뷰포트 메타 태그가 없습니다.");
+  }
+
+  if (h1s.length === 1) health += 10;
+  else if (h1s.length === 0) issues.push("H1 제목이 없습니다.");
+  else issues.push("H1이 여러 개입니다. 페이지당 하나로 모으세요.");
+
+  if (canonical) health += 5;
+  if (input.sitemapUrls > 0) health += 10;
+  else issues.push("sitemap.xml을 찾지 못했습니다.");
+
+  health = Math.min(100, Math.max(0, Math.round(health)));
+  const indexedPages = input.sitemapUrls > 0 ? input.sitemapUrls : 1;
 
   return {
-    domain,
+    domain: input.domain,
     analyzedAt: new Date().toISOString(),
     metrics: {
-      organicKeywords,
+      organicKeywords: topKeywords.length,
       indexedPages,
-      referringDomains,
+      referringDomains: 0,
       healthScore: health,
-      mobileFriendly: n(28) % 2 === 0,
-      https: true,
+      mobileFriendly: Boolean(viewport),
+      https: input.https,
     },
-    topKeywords: trafficKeywords.sort((a, b) => b.clicks - a.clicks),
-    issues: [
-      health < 60 ? "핵심 랜딩 페이지의 메타 설명·H1 최적화가 필요합니다." : null,
-      indexedPages < 50 ? "인덱스된 페이지 수가 적어 콘텐츠 확장이 필요합니다." : null,
-      referringDomains < 30 ? "외부 유입 도메인이 적어 백링크 확보를 검토하세요." : null,
-    ].filter(Boolean),
-    summary: `${domain} 사이트 건강도 ${health}점 · 추정 유입 키워드 ${organicKeywords.toLocaleString("ko-KR")}개`,
+    topKeywords,
+    issues,
+    summary: `${input.domain} 사이트 건강도 ${health}점 · 페이지 키워드 ${topKeywords.length}개`,
   };
+}
+
+function countSitemapLocs(xml: string): number {
+  return [...xml.matchAll(/<loc(?:\s[^>]*)?>[\s\S]*?<\/loc>/gi)].length;
+}
+
+export async function diagnoseSite(domainInput: string) {
+  const domain = domainInput
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/.*$/, "")
+    .replace(/:\d+$/, "")
+    .toLowerCase();
+  if (!domain) throw new Error("도메인을 입력해 주세요.");
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain)) {
+    throw new Error("도메인 형식이 올바르지 않습니다.");
+  }
+
+  let html: string;
+  try {
+    const fetched = await fetchPublicHtml(`https://${domain}/`);
+    html = fetched.html;
+  } catch (error) {
+    throw new Error(error instanceof SsrfError ? error.message : "사이트를 불러오지 못했습니다.");
+  }
+
+  let sitemapUrls = 0;
+  try {
+    const sitemap = await fetchPublicHtml(`https://${domain}/sitemap.xml`);
+    sitemapUrls = countSitemapLocs(sitemap.html);
+  } catch {
+    sitemapUrls = 0;
+  }
+
+  return scoreSitePage({ domain, html, https: true, sitemapUrls });
 }

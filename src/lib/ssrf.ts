@@ -169,3 +169,66 @@ export async function fetchAllowedRaw(raw: string): Promise<{ url: URL; text: st
   const { url, body } = await fetchAllowlisted(raw, { rewriteNaverPost: false });
   return { url, text: body };
 }
+
+function parseHttpsUrl(raw: string): URL {
+  const trimmed = raw.trim();
+  let url: URL;
+  try {
+    url = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+  } catch {
+    throw new SsrfError("URL 형식이 올바르지 않습니다.");
+  }
+  if (url.protocol !== "https:") {
+    throw new SsrfError("https URL만 허용됩니다.");
+  }
+  if (url.username || url.password) {
+    throw new SsrfError("URL에 인증 정보를 포함할 수 없습니다.");
+  }
+  const host = url.hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal")) {
+    throw new SsrfError("사설 호스트는 허용되지 않습니다.");
+  }
+  assertNotPrivateIp(url.hostname);
+  return url;
+}
+
+/** https + public IP only — used for arbitrary-domain site diagnosis (not blog allowlist). */
+export async function assertPublicHttpsUrl(raw: string): Promise<URL> {
+  const url = parseHttpsUrl(raw);
+  const { lookup } = await import("node:dns/promises");
+  try {
+    const { address } = await lookup(url.hostname);
+    assertNotPrivateIp(address);
+    const lower = address.toLowerCase();
+    if (lower === "::1" || lower.startsWith("fe80:") || lower.startsWith("fc") || lower.startsWith("fd")) {
+      throw new SsrfError("사설 IP 주소는 허용되지 않습니다.");
+    }
+  } catch (error) {
+    if (error instanceof SsrfError) throw error;
+    throw new SsrfError("도메인을 확인할 수 없습니다.");
+  }
+  return url;
+}
+
+const MAX_PUBLIC_BODY = 1_000_000;
+
+export async function fetchPublicHtml(raw: string): Promise<{ url: URL; html: string }> {
+  const initial = await assertPublicHttpsUrl(raw);
+  let response = await fetchOnce(initial);
+  let url = initial;
+
+  if (response.status >= 300 && response.status < 400) {
+    const location = response.headers.get("location");
+    if (!location) {
+      throw new SsrfError("리다이렉트 위치를 확인할 수 없습니다.");
+    }
+    url = await assertPublicHttpsUrl(new URL(location, initial).toString());
+    response = await fetchOnce(url);
+  }
+
+  if (!response.ok) {
+    throw new SsrfError(`페이지를 불러오지 못했습니다. (${response.status})`);
+  }
+
+  return { url, html: (await response.text()).slice(0, MAX_PUBLIC_BODY) };
+}

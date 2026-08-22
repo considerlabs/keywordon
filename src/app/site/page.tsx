@@ -55,7 +55,7 @@ export default function SitePage() {
         </p>
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold">내 사이트 진단</h1>
         <p className="mt-2 text-[var(--muted)]">
-          도메인 기준 유입 키워드·인덱스·백링크 건강도를 진단합니다. 베이직 이상 필요.
+          홈페이지 HTML을 가져와 제목·메타·H1·모바일·HTTPS를 진단합니다. 베이직 이상 필요.
         </p>
       </div>
 
@@ -96,9 +96,9 @@ export default function SitePage() {
             <div className="mt-5 grid gap-3 sm:grid-cols-4">
               {[
                 ["건강도", report.metrics.healthScore],
-                ["유입 키워드", formatNumber(report.metrics.organicKeywords)],
-                ["인덱스", formatNumber(report.metrics.indexedPages)],
-                ["참조 도메인", formatNumber(report.metrics.referringDomains)],
+                ["페이지 키워드", formatNumber(report.metrics.organicKeywords)],
+                ["사이트맵", formatNumber(report.metrics.indexedPages)],
+                ["모바일", report.metrics.mobileFriendly ? "양호" : "미흡"],
               ].map(([label, value]) => (
                 <div key={String(label)} className="rounded-2xl bg-[var(--canvas)] p-4">
                   <p className="text-sm text-[var(--muted)]">{label}</p>
@@ -110,14 +110,13 @@ export default function SitePage() {
 
           <section className="grid gap-6 lg:grid-cols-2">
             <div className="rounded-3xl bg-[var(--panel)] p-6 ring-1 ring-black/5">
-              <h3 className="mb-4 font-bold">상위 유입 키워드</h3>
+              <h3 className="mb-4 font-bold">페이지 키워드</h3>
               <div className="overflow-hidden rounded-2xl ring-1 ring-black/5">
                 <table className="w-full text-sm">
                   <thead className="bg-[var(--canvas)] text-[var(--muted)]">
                     <tr>
                       <th className="px-3 py-2 text-left">키워드</th>
-                      <th className="px-3 py-2 text-left">클릭</th>
-                      <th className="px-3 py-2 text-left">순위</th>
+                      <th className="px-3 py-2 text-left">언급</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -125,7 +124,6 @@ export default function SitePage() {
                       <tr key={item.keyword} className="border-t border-black/5">
                         <td className="px-3 py-2">{item.keyword}</td>
                         <td className="px-3 py-2">{item.clicks}</td>
-                        <td className="px-3 py-2">{item.position}</td>
                       </tr>
                     ))}
                   </tbody>

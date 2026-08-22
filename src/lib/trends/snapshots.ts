@@ -74,24 +74,5 @@ export function mergeTrendItems(
   live: TrendItem[],
   fromDb: TrendItem[],
 ): { items: TrendItem[]; hasHistory: boolean } {
-  if (fromDb.length === 0) {
-    return { items: live, hasHistory: false };
-  }
-
-  const liveByKeyword = new Map(live.map((item) => [item.keyword, item]));
-
-  const merged = fromDb.map((row) => {
-    const current = liveByKeyword.get(row.keyword);
-    return current ?? row;
-  });
-
-  for (const item of live) {
-    if (!merged.some((row) => row.keyword === item.keyword)) {
-      merged.push(item);
-    }
-  }
-
-  merged.sort((a, b) => a.rank - b.rank);
-
-  return { items: merged, hasHistory: true };
+  return { items: live, hasHistory: fromDb.length > 0 };
 }

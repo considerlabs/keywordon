@@ -304,20 +304,37 @@ const TREND_POOL = [
   "인테리어 소품",
 ];
 
-export function getRealtimeTrends(): TrendItem[] {
-  const hourSeed = hashString(
-    `trends:${new Date().toISOString().slice(0, 13)}`,
-  );
-  const rand = seededRandom(hourSeed);
-  const pool = [...TREND_POOL].sort(() => rand() - 0.5).slice(0, 10);
-  const changes: TrendItem["change"][] = ["up", "down", "same", "new"];
+function shufflePool(rand: () => number): string[] {
+  const pool = [...TREND_POOL];
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rand() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool;
+}
 
-  return pool.map((keyword, index) => ({
-    rank: index + 1,
-    keyword,
-    change: changes[Math.floor(rand() * changes.length)],
-    delta: Math.floor(rand() * 8) + 1,
-  }));
+function trendRankingAt(at: Date): { keyword: string; rank: number }[] {
+  const hourKey = at.toISOString().slice(0, 13);
+  const rand = seededRandom(hashString(`trends:${hourKey}`));
+  return shufflePool(rand)
+    .slice(0, 10)
+    .map((keyword, index) => ({ keyword, rank: index + 1 }));
+}
+
+export function getRealtimeTrends(): TrendItem[] {
+  const now = new Date();
+  const current = trendRankingAt(now);
+  const previous = trendRankingAt(new Date(now.getTime() - 60 * 60 * 1000));
+  const prevRank = new Map(previous.map((item) => [item.keyword, item.rank]));
+
+  return current.map((item) => {
+    const prev = prevRank.get(item.keyword);
+    if (prev == null) return { ...item, change: "new" as const, delta: 0 };
+    const diff = prev - item.rank;
+    if (diff > 0) return { ...item, change: "up" as const, delta: diff };
+    if (diff < 0) return { ...item, change: "down" as const, delta: -diff };
+    return { ...item, change: "same" as const, delta: 0 };
+  });
 }
 
 export function discoverKeywords(seedKeyword: string): RelatedKeyword[] {

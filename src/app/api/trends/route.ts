@@ -2,11 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { getRealtimeTrends } from "@/lib/keyword-engine";
 import { assertFeature } from "@/lib/quota";
-import {
-  countDistinctSnapshotHours,
-  getTrendListFromSnapshots,
-  mergeTrendItems,
-} from "@/lib/trends/snapshots";
+import { countDistinctSnapshotHours } from "@/lib/trends/snapshots";
 
 export async function GET() {
   const authContext = await getAuthContext();
@@ -15,10 +11,9 @@ export async function GET() {
     return NextResponse.json({ error: feature.error }, { status: 403 });
   }
 
-  const live = getRealtimeTrends();
-  const fromDb = await getTrendListFromSnapshots();
+  const items = getRealtimeTrends();
   const snapshotHours = await countDistinctSnapshotHours();
-  const { items, hasHistory } = mergeTrendItems(live, fromDb);
+  const hasHistory = snapshotHours > 0;
 
   return NextResponse.json({
     updatedAt: new Date().toISOString(),

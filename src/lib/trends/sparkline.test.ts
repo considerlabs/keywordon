@@ -48,4 +48,18 @@ describe("buildSparklinePolyline", () => {
     expect(polyline).toContain("4,");
     expect(polyline.split(" ").length).toBe(2);
   });
+
+  it("places a better (lower) rank higher on the chart", () => {
+    const polyline = buildSparklinePolyline(
+      [
+        { label: "a", value: 5 },
+        { label: "b", value: 1 },
+      ],
+      100,
+      40,
+    );
+    const ys = polyline.split(" ").map((pair) => Number(pair.split(",")[1]));
+    expect(ys[1]).toBeLessThan(ys[0]);
+  });
 });
+

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   assertAllowedUrl,
+  assertPublicHttpsUrl,
   extractBlogText,
   isAllowedHost,
   resolveFetchUrl,
@@ -40,6 +41,15 @@ describe("assertAllowedUrl", () => {
 
   it("rejects malformed URLs", () => {
     expect(() => assertAllowedUrl("not-a-url")).toThrow(SsrfError);
+  });
+});
+
+describe("assertPublicHttpsUrl", () => {
+  it("rejects private IPs and localhost without DNS", async () => {
+    await expect(assertPublicHttpsUrl("https://127.0.0.1/")).rejects.toThrow(SsrfError);
+    await expect(assertPublicHttpsUrl("https://192.168.0.1/")).rejects.toThrow(/사설 IP/);
+    await expect(assertPublicHttpsUrl("https://localhost/")).rejects.toThrow(/사설 호스트/);
+    await expect(assertPublicHttpsUrl("http://example.com/")).rejects.toThrow(/https/);
   });
 });
 

@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = (await request.json()) as { domain?: string };
-    const report = diagnoseSite(body.domain ?? "");
+    const report = await diagnoseSite(body.domain ?? "");
     return NextResponse.json(report);
   } catch (error) {
     return NextResponse.json(
