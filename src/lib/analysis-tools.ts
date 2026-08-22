@@ -399,7 +399,10 @@ export async function diagnoseSite(domainInput: string) {
       html = fetched.html;
       break;
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error("사이트를 불러오지 못했습니다.");
+      lastError =
+        error instanceof SsrfError
+          ? error
+          : new Error("사이트에 연결하지 못했습니다. 도메인과 HTTPS 여부를 확인해 주세요.");
     }
   }
   if (!html) {

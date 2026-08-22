@@ -46,7 +46,12 @@ export default function SitePage() {
       }
       setReport(payload as SiteReport);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "진단 실패");
+      const message = err instanceof Error ? err.message : "진단 실패";
+      setError(
+        /fetch failed|failed to fetch/i.test(message)
+          ? "사이트에 연결하지 못했습니다. 도메인과 HTTPS 여부를 확인해 주세요."
+          : message,
+      );
     } finally {
       setLoading(false);
     }

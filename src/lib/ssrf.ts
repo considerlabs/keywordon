@@ -1,4 +1,12 @@
+import { setDefaultResultOrder } from "node:dns";
+
 const ALLOWED_HOSTS = ["blog.naver.com", "m.blog.naver.com", "tistory.com"] as const;
+
+try {
+  setDefaultResultOrder("ipv4first");
+} catch {
+  /* Node versions without this API */
+}
 
 export class SsrfError extends Error {
   constructor(message: string) {
@@ -197,7 +205,12 @@ export async function assertPublicHttpsUrl(raw: string): Promise<URL> {
   const url = parseHttpsUrl(raw);
   const { lookup } = await import("node:dns/promises");
   try {
-    const { address } = await lookup(url.hostname);
+    let address: string;
+    try {
+      address = (await lookup(url.hostname, { family: 4 })).address;
+    } catch {
+      address = (await lookup(url.hostname)).address;
+    }
     assertNotPrivateIp(address);
     const lower = address.toLowerCase();
     if (lower === "::1" || lower.startsWith("fe80:") || lower.startsWith("fc") || lower.startsWith("fd")) {
@@ -212,15 +225,41 @@ export async function assertPublicHttpsUrl(raw: string): Promise<URL> {
 
 const MAX_PUBLIC_BODY = 1_000_000;
 
+function mapPublicFetchError(error: unknown): never {
+  const message = error instanceof Error ? error.message : "";
+  const cause =
+    error instanceof Error && error.cause instanceof Error ? error.cause.message : "";
+  const combined = `${message} ${cause}`.toLowerCase();
+  if (combined.includes("abort") || combined.includes("timeout")) {
+    throw new SsrfError("사이트 응답 시간이 초과되었습니다.");
+  }
+  if (
+    combined.includes("certificate") ||
+    combined.includes("cert") ||
+    combined.includes("ssl") ||
+    combined.includes("tls")
+  ) {
+    throw new SsrfError("보안 인증서 검증에 실패했습니다.");
+  }
+  throw new SsrfError(
+    "사이트에 연결하지 못했습니다. 도메인이 맞는지, HTTPS로 열리는 사이트인지 확인해 주세요.",
+  );
+}
+
 async function fetchPublicOnce(url: URL): Promise<Response> {
-  return fetch(url.toString(), {
-    redirect: "manual",
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    },
-  });
+  try {
+    return await fetch(url.toString(), {
+      redirect: "manual",
+      signal: AbortSignal.timeout(8_000),
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      },
+    });
+  } catch (error) {
+    mapPublicFetchError(error);
+  }
 }
 
 export async function fetchPublicHtml(raw: string): Promise<{ url: URL; html: string }> {

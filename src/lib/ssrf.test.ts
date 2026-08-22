@@ -150,4 +150,14 @@ describe("fetchPublicHtml", () => {
     const result = await fetchPublicHtml("https://example.com/");
     expect(result.html).toContain("ok");
   });
+
+  it("maps undici fetch failed to a Korean connection error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("fetch failed");
+      }),
+    );
+    await expect(fetchPublicHtml("https://example.com/")).rejects.toThrow(/연결하지 못했습니다/);
+  });
 });
