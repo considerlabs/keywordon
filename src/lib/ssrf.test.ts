@@ -154,7 +154,9 @@ describe("fetchPublicHtml", () => {
             statusCode: step.status ?? 200,
             headers: { location: step.location },
           });
-          if (typeof cb === "function") cb(res as never);
+          if (typeof cb === "function") {
+            (cb as (incoming: EventEmitter) => void)(res);
+          }
           queueMicrotask(() => {
             res.emit("data", Buffer.from(step.body ?? ""));
             res.emit("end");

@@ -147,25 +147,28 @@ async function fetchAllowlisted(
   options?: { rewriteNaverPost?: boolean },
 ): Promise<{ url: URL; body: string }> {
   const initial = assertAllowedUrl(raw);
-  const target = options?.rewriteNaverPost === false ? initial : resolveFetchUrl(initial);
-  let response = await fetchOnce(target);
+  let target = options?.rewriteNaverPost === false ? initial : resolveFetchUrl(initial);
 
-  if (response.status >= 300 && response.status < 400) {
-    const location = response.headers.get("location");
-    if (!location) {
-      throw new SsrfError("리다이렉트 위치를 확인할 수 없습니다.");
+  for (let hop = 0; hop < 10; hop += 1) {
+    const response = await fetchOnce(target);
+    if (response.status >= 200 && response.status < 300) {
+      return { url: initial, body: await response.text() };
     }
-    const next = assertAllowedUrl(new URL(location, target).toString());
-    const hop =
-      options?.rewriteNaverPost === false ? next : resolveFetchUrl(next);
-    response = await fetchOnce(hop);
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location) {
+        const body = await response.text();
+        if (body.trim()) return { url: initial, body };
+        throw new SsrfError("리다이렉트 위치를 확인할 수 없습니다.");
+      }
+      const next = assertAllowedUrl(new URL(location, target).toString());
+      target = options?.rewriteNaverPost === false ? next : resolveFetchUrl(next);
+      continue;
+    }
+    throw new SsrfError("페이지를 불러오지 못했습니다.");
   }
 
-  if (!response.ok) {
-    throw new SsrfError(`페이지를 불러오지 못했습니다. (${response.status})`);
-  }
-
-  return { url: initial, body: await response.text() };
+  throw new SsrfError("사이트가 리다이렉트를 반복해서 페이지를 열 수 없습니다.");
 }
 
 /** Fetch HTML from an allowlisted URL with one manual redirect hop. */
@@ -400,10 +403,10 @@ export async function fetchPublicHtml(
       throw new SsrfError("리다이렉트 위치를 확인할 수 없습니다.");
     }
 
-    if (looksLikeHtml(result.body) || result.body.trim().length > 80) {
+    if (looksLikeHtml(result.body) || result.body.trim()) {
       return { url, html: result.body.slice(0, MAX_PUBLIC_BODY), tlsTrusted };
     }
-    throw new SsrfError(`페이지를 불러오지 못했습니다. (${result.status})`);
+    throw new SsrfError("페이지를 불러오지 못했습니다.");
   }
 
   if (looksLikeHtml(lastBody) || lastBody.trim()) {
