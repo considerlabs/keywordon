@@ -1,4 +1,4 @@
-import { lookup as dnsLookup, setDefaultResultOrder } from "node:dns";
+import { setDefaultResultOrder } from "node:dns";
 import https from "node:https";
 import type { IncomingMessage } from "node:http";
 
@@ -299,15 +299,7 @@ function httpsGet(url: URL, rejectUnauthorized: boolean): Promise<PublicGetResul
         rejectUnauthorized,
         servername: url.hostname,
         timeout: 8_000,
-        lookup: (hostname, _options, callback) => {
-          dnsLookup(hostname, { family: 4 }, (err, address, family) => {
-            if (!err) {
-              callback(null, address, family);
-              return;
-            }
-            dnsLookup(hostname, callback);
-          });
-        },
+        family: 4,
         headers: {
           Host: url.hostname,
           "User-Agent":

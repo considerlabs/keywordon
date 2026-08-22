@@ -27,11 +27,15 @@
 
 구현: `src/lib/admin/emails.ts`, `src/lib/plans.ts` `superAdminPlan()`, `src/lib/auth.ts`, `src/lib/quota.ts`
 
+## 사이트 진단 (내 사이트 진단)
+
+`https.request`에 넣은 custom DNS `lookup`이 Node 20+에서 `{ all: true }`로 호출되면 연결 IP가 `undefined`가 되어 모든 공개 사이트 요청이 실패했다. 리다이렉트를 따라가는 코드는 실행되지 않았다. **custom lookup을 제거하고 `family: 4`만 쓴다.** 로컬에서 `naver.com` 진단이 HTML을 가져와 건강도 점수를 반환하는 것을 확인했다.
+
 ## 운영자가 알아야 할 것
 
 1. 키워드 분석이 되려면 Vercel/설정에 **네이버 검색광고 3키**가 있어야 함. 없으면 시뮬로 넘어가지 않고 에러.
 2. 급상승은 signal.bz 공개 API. 장애 시 홈은 빈 리스트, `/api/trends`는 502.
-3. 테스트: `npm test` (**130**).
+3. 테스트: `npm test`.
 
 ## 관련 커밋 계열
 

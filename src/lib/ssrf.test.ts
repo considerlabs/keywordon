@@ -133,6 +133,7 @@ describe("fetchPublicHtml", () => {
       hostname?: string | null;
       path?: string | null;
       rejectUnauthorized?: boolean;
+      lookup?: unknown;
     }) => { status?: number; location?: string; body?: string; error?: Error },
   ) {
     vi.spyOn(https, "request").mockImplementation((opts, cb) => {
@@ -140,6 +141,7 @@ describe("fetchPublicHtml", () => {
         hostname?: string;
         path?: string;
         rejectUnauthorized?: boolean;
+        lookup?: unknown;
       };
       const req = new EventEmitter();
       Object.assign(req, {
@@ -170,7 +172,9 @@ describe("fetchPublicHtml", () => {
   }
 
   it("follows a 307 chain instead of failing on the first redirect", async () => {
+    const seen: Array<{ lookup?: unknown }> = [];
     stubHttps((opts) => {
+      seen.push(opts);
       if (opts.hostname === "example.com") {
         return { status: 307, location: "https://www.example.com/" };
       }
@@ -182,6 +186,8 @@ describe("fetchPublicHtml", () => {
 
     const result = await fetchPublicHtml("https://example.com/");
     expect(result.html).toContain("ok");
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((opts) => opts.lookup === undefined)).toBe(true);
   });
 
   it("retries without certificate checks after a TLS error", async () => {
