@@ -24,6 +24,7 @@ export default function SitePage() {
   const [domain, setDomain] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [planBlocked, setPlanBlocked] = useState(false);
   const [report, setReport] = useState<SiteReport | null>(null);
   const example = useExamplePlaceholder("예: example.com");
 
@@ -31,6 +32,7 @@ export default function SitePage() {
     event.preventDefault();
     setLoading(true);
     setError("");
+    setPlanBlocked(false);
     try {
       const response = await fetch("/api/site", {
         method: "POST",
@@ -38,7 +40,10 @@ export default function SitePage() {
         body: JSON.stringify({ domain }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "진단 실패");
+      if (!response.ok) {
+        setPlanBlocked(response.status === 403);
+        throw new Error(payload.error ?? "진단 실패");
+      }
       setReport(payload as SiteReport);
     } catch (err) {
       setError(err instanceof Error ? err.message : "진단 실패");
@@ -79,10 +84,15 @@ export default function SitePage() {
 
       {error ? (
         <p className="mb-4 text-sm text-rose-600">
-          {error}{" "}
-          <Link href="/shop" className="underline">
-            플랜 업그레이드
-          </Link>
+          {error}
+          {planBlocked ? (
+            <>
+              {" "}
+              <Link href="/shop" className="underline">
+                플랜 업그레이드
+              </Link>
+            </>
+          ) : null}
         </p>
       ) : null}
 

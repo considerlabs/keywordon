@@ -1,8 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("node:dns/promises", () => ({
+  lookup: vi.fn(async () => ({ address: "93.184.216.34", family: 4 })),
+}));
+
 import {
   assertAllowedUrl,
   assertPublicHttpsUrl,
   extractBlogText,
+  fetchPublicHtml,
   isAllowedHost,
   resolveFetchUrl,
   SsrfError,
@@ -112,5 +118,36 @@ describe("extractBlogText", () => {
   it("falls back to full-page text when article container is missing", () => {
     const text = extractBlogText("<html><body><p>티스토리 본문 키워드</p></body></html>");
     expect(text).toContain("티스토리 본문 키워드");
+  });
+});
+
+describe("fetchPublicHtml", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("follows a 307 chain instead of failing on the first redirect", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = input instanceof Request ? input.url : String(input);
+        if (url === "https://example.com/") {
+          return new Response(null, {
+            status: 307,
+            headers: { location: "https://www.example.com/" },
+          });
+        }
+        if (url === "https://www.example.com/") {
+          return new Response(null, {
+            status: 307,
+            headers: { location: "/home" },
+          });
+        }
+        return new Response("<html><title>ok</title></html>", { status: 200 });
+      }),
+    );
+
+    const result = await fetchPublicHtml("https://example.com/");
+    expect(result.html).toContain("ok");
   });
 });

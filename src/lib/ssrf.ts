@@ -212,18 +212,30 @@ export async function assertPublicHttpsUrl(raw: string): Promise<URL> {
 
 const MAX_PUBLIC_BODY = 1_000_000;
 
-export async function fetchPublicHtml(raw: string): Promise<{ url: URL; html: string }> {
-  const initial = await assertPublicHttpsUrl(raw);
-  let response = await fetchOnce(initial);
-  let url = initial;
+async function fetchPublicOnce(url: URL): Promise<Response> {
+  return fetch(url.toString(), {
+    redirect: "manual",
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    },
+  });
+}
 
-  if (response.status >= 300 && response.status < 400) {
-    const location = response.headers.get("location");
+export async function fetchPublicHtml(raw: string): Promise<{ url: URL; html: string }> {
+  let url = await assertPublicHttpsUrl(raw);
+  let response = await fetchPublicOnce(url);
+
+  for (let hop = 0; hop < 5 && response.status >= 300 && response.status < 400; hop += 1) {
+    const location = response.headers.get("location")?.trim();
     if (!location) {
       throw new SsrfError("리다이렉트 위치를 확인할 수 없습니다.");
     }
-    url = await assertPublicHttpsUrl(new URL(location, initial).toString());
-    response = await fetchOnce(url);
+    const next = new URL(location, url);
+    if (next.protocol === "http:") next.protocol = "https:";
+    url = await assertPublicHttpsUrl(next.toString());
+    response = await fetchPublicOnce(url);
   }
 
   if (!response.ok) {

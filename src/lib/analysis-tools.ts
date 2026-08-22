@@ -388,12 +388,22 @@ export async function diagnoseSite(domainInput: string) {
     throw new Error("도메인 형식이 올바르지 않습니다.");
   }
 
-  let html: string;
-  try {
-    const fetched = await fetchPublicHtml(`https://${domain}/`);
-    html = fetched.html;
-  } catch (error) {
-    throw new Error(error instanceof SsrfError ? error.message : "사이트를 불러오지 못했습니다.");
+  const homepages = [`https://${domain}/`];
+  if (!domain.startsWith("www.")) homepages.push(`https://www.${domain}/`);
+
+  let html: string | null = null;
+  let lastError: Error | null = null;
+  for (const url of homepages) {
+    try {
+      const fetched = await fetchPublicHtml(url);
+      html = fetched.html;
+      break;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("사이트를 불러오지 못했습니다.");
+    }
+  }
+  if (!html) {
+    throw new Error(lastError?.message ?? "사이트를 불러오지 못했습니다.");
   }
 
   let sitemapUrls = 0;
