@@ -31,7 +31,7 @@ describe("TOP_NAV", () => {
       "/trends",
       "/calculator",
       "/site",
-      "/account/usage",
+      "/account",
       "/shop",
     ];
     for (const href of required) {

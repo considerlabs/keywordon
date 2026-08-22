@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Show, SignInButton, UserButton } from "@clerk/nextjs";
-import { ChevronDown, Menu, Search } from "lucide-react";
+import { ChevronDown, CreditCard, Menu, Search, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { isNavActive, TOP_NAV, type NavGroup } from "@/lib/nav";
 import { cn } from "@/lib/utils";
@@ -111,7 +111,20 @@ export function SiteHeader() {
                 </SignInButton>
               }
             >
-              <UserButton />
+              <UserButton>
+                <UserButton.MenuItems>
+                  <UserButton.Link
+                    label="내 정보"
+                    href="/account"
+                    labelIcon={<UserRound className="h-4 w-4" />}
+                  />
+                  <UserButton.Link
+                    label="플랜 업그레이드"
+                    href="/shop"
+                    labelIcon={<CreditCard className="h-4 w-4" />}
+                  />
+                </UserButton.MenuItems>
+              </UserButton>
             </Show>
           ) : (
             <Link

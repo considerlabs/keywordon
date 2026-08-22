@@ -91,9 +91,9 @@ export const TOP_NAV: NavGroup[] = [
         description: "도메인 단위 SEO 점검을 실행",
       },
       {
-        href: "/account/usage",
-        label: "사용량",
-        description: "AI·검색 쿼터를 한눈에 확인",
+        href: "/account",
+        label: "내 정보",
+        description: "플랜 확인과 업그레이드",
       },
     ],
   },

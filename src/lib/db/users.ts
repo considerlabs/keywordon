@@ -59,6 +59,7 @@ export async function ensureUser(
       };
       memoryUsers.set(clerkId, user);
     }
+    if (email && user.email !== email) user.email = email;
     resetIfNeeded(user);
     return user;
   }
@@ -67,13 +68,13 @@ export async function ensureUser(
   if (existing[0]) {
     const row = existing[0];
     const key = monthKey();
-    if (row.usageMonthKey !== key) {
+    if (row.usageMonthKey !== key || (email && email !== row.email)) {
       const updated = await db
         .update(users)
         .set({
           usageMonthKey: key,
-          aiUsedMonth: 0,
-          googleUsedMonth: 0,
+          aiUsedMonth: row.usageMonthKey !== key ? 0 : row.aiUsedMonth,
+          googleUsedMonth: row.usageMonthKey !== key ? 0 : row.googleUsedMonth,
           updatedAt: new Date(),
           email: email ?? row.email,
         })

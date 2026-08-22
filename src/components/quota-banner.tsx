@@ -17,7 +17,7 @@ export function QuotaBanner({ usage, href }: QuotaBannerProps) {
 
   return (
     <Link
-      href={href ?? "/account/usage"}
+      href={href ?? "/account"}
       className="block rounded-lg border border-[var(--accent)]/30 bg-[var(--panel)] p-4 transition hover:border-[var(--accent)]/60 hover:bg-[var(--surface)]"
     >
       <div className="flex items-center justify-between gap-4 text-sm">

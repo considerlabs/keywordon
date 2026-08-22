@@ -16,7 +16,21 @@ export function buildUsageSummary(input: {
   aiMonthly: number;
   googleUsedMonth: number;
   googleMonthly: number;
+  unlimited?: boolean;
 }): UsageSummary {
+  if (input.unlimited) {
+    return {
+      planName: input.planName,
+      aiUsed: input.aiUsedMonth,
+      aiLimit: 0,
+      aiRemaining: 0,
+      aiPercent: 0,
+      aiIncluded: true,
+      googleUsed: input.googleUsedMonth,
+      googleLimit: 0,
+      exhausted: false,
+    };
+  }
   const aiLimit = input.aiMonthly;
   const aiUsed = input.aiUsedMonth;
   const aiIncluded = aiLimit > 0;

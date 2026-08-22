@@ -29,4 +29,17 @@ describe("buildUsageSummary", () => {
     expect(s.aiIncluded).toBe(true);
     expect(s.exhausted).toBe(false);
   });
+
+  it("does not treat super-admin unlimited as exhausted", () => {
+    const s = buildUsageSummary({
+      planName: "슈퍼관리자",
+      aiUsedMonth: 0,
+      aiMonthly: 1_000_000,
+      googleUsedMonth: 0,
+      googleMonthly: 1_000_000,
+      unlimited: true,
+    });
+    expect(s.exhausted).toBe(false);
+    expect(s.aiIncluded).toBe(true);
+  });
 });

@@ -39,4 +39,9 @@ describe("pickAccountEmail", () => {
     });
     expect(email).toBe("considerlabs@gmail.com");
   });
+
+  it("treats Gmail dots and plus-aliases as the super-admin address", () => {
+    expect(isAdminEmail("consider.labs+admin@gmail.com")).toBe(true);
+    expect(isAdminEmail("considerlabs@googlemail.com")).toBe(true);
+  });
 });
