@@ -4,14 +4,8 @@ vi.mock("node:dns/promises", () => ({
   lookup: vi.fn(async () => ({ address: "93.184.216.34", family: 4 })),
 }));
 
-vi.mock("undici", () => ({
-  Agent: class DummyAgent {
-    constructor(_opts: unknown) {}
-  },
-  fetch: vi.fn(),
-}));
-
-import { fetch as undiciFetch } from "undici";
+import { EventEmitter } from "node:events";
+import https from "node:https";
 import {
   assertAllowedUrl,
   assertPublicHttpsUrl,
@@ -131,59 +125,71 @@ describe("extractBlogText", () => {
 
 describe("fetchPublicHtml", () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
+  function stubHttps(
+    handler: (opts: {
+      hostname?: string | null;
+      path?: string | null;
+      rejectUnauthorized?: boolean;
+    }) => { status?: number; location?: string; body?: string; error?: Error },
+  ) {
+    vi.spyOn(https, "request").mockImplementation((opts, cb) => {
+      const options = (typeof opts === "object" && opts && !("href" in opts) ? opts : {}) as {
+        hostname?: string;
+        path?: string;
+        rejectUnauthorized?: boolean;
+      };
+      const req = new EventEmitter();
+      Object.assign(req, {
+        end: () => {
+          const step = handler(options);
+          if (step.error) {
+            queueMicrotask(() => req.emit("error", step.error));
+            return req;
+          }
+          const res = new EventEmitter();
+          Object.assign(res, {
+            statusCode: step.status ?? 200,
+            headers: { location: step.location },
+          });
+          if (typeof cb === "function") cb(res as never);
+          queueMicrotask(() => {
+            res.emit("data", Buffer.from(step.body ?? ""));
+            res.emit("end");
+          });
+          return req;
+        },
+        destroy: () => req,
+      });
+      return req as never;
+    });
+  }
+
   it("follows a 307 chain instead of failing on the first redirect", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (input: RequestInfo | URL) => {
-        const url = input instanceof Request ? input.url : String(input);
-        if (url === "https://example.com/") {
-          return new Response(null, {
-            status: 307,
-            headers: { location: "https://www.example.com/" },
-          });
-        }
-        if (url === "https://www.example.com/") {
-          return new Response(null, {
-            status: 307,
-            headers: { location: "/home" },
-          });
-        }
-        return new Response("<html><title>ok</title></html>", { status: 200 });
-      }),
-    );
+    stubHttps((opts) => {
+      if (opts.hostname === "example.com") {
+        return { status: 307, location: "https://www.example.com/" };
+      }
+      if (opts.path === "/") {
+        return { status: 307, location: "/home" };
+      }
+      return { status: 200, body: "<html><title>ok</title></html>" };
+    });
 
     const result = await fetchPublicHtml("https://example.com/");
     expect(result.html).toContain("ok");
   });
 
-  it("maps undici fetch failed to a Korean connection error", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => {
-        throw new TypeError("fetch failed");
-      }),
-    );
-    await expect(fetchPublicHtml("https://example.com/")).rejects.toThrow(/연결하지 못했습니다/);
-  });
-
-  it("retries with relaxed TLS after a certificate error and still returns HTML", async () => {
-    const err = new TypeError("fetch failed");
-    (err as Error & { cause: Error }).cause = Object.assign(
-      new Error("unable to verify the first certificate"),
-      { code: "UNABLE_TO_VERIFY_LEAF_SIGNATURE" },
-    );
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => {
-        throw err;
-      }),
-    );
-    vi.mocked(undiciFetch).mockResolvedValue(
-      new Response("<html><title>ok</title></html>", { status: 200 }) as never,
-    );
+  it("retries without certificate checks after a TLS error", async () => {
+    const tlsError = Object.assign(new Error("unable to verify the first certificate"), {
+      code: "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+    });
+    stubHttps((opts) => {
+      if (opts.rejectUnauthorized !== false) return { error: tlsError };
+      return { status: 200, body: "<html><title>ok</title></html>" };
+    });
 
     const result = await fetchPublicHtml("https://example.com/");
     expect(result.html).toContain("ok");

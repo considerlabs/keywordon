@@ -1,4 +1,6 @@
 import { setDefaultResultOrder } from "node:dns";
+import https from "node:https";
+import type { IncomingMessage } from "node:http";
 
 const ALLOWED_HOSTS = ["blog.naver.com", "m.blog.naver.com", "tistory.com"] as const;
 
@@ -226,16 +228,25 @@ export async function assertPublicHttpsUrl(raw: string): Promise<URL> {
 const MAX_PUBLIC_BODY = 1_000_000;
 
 function collectErrorText(error: unknown): string {
-  const message = error instanceof Error ? error.message : "";
-  const cause =
-    error instanceof Error && error.cause instanceof Error
-      ? `${error.cause.message} ${(error.cause as { code?: string }).code ?? ""}`
-      : "";
-  return `${message} ${cause}`.toLowerCase();
+  const parts: string[] = [];
+  const walk = (value: unknown, depth: number) => {
+    if (value == null || depth > 4) return;
+    if (typeof value === "string") {
+      parts.push(value);
+      return;
+    }
+    if (typeof value !== "object") return;
+    const record = value as { message?: unknown; code?: unknown; cause?: unknown };
+    if (typeof record.message === "string") parts.push(record.message);
+    if (typeof record.code === "string") parts.push(record.code);
+    if ("cause" in record) walk(record.cause, depth + 1);
+  };
+  walk(error, 0);
+  return parts.join(" ").toLowerCase();
 }
 
 function isTlsError(error: unknown): boolean {
-  return /certificate|unable to verify|self[- ]signed|unable to get local issuer|err_tls|ssl|tls/.test(
+  return /certificate|unable to verify|self[- ]signed|unable to get local issuer|err_tls|cert_|ssl|tls/.test(
     collectErrorText(error),
   );
 }
@@ -250,37 +261,67 @@ function mapPublicFetchError(error: unknown): never {
   );
 }
 
-async function fetchPublicOnce(url: URL, relaxTls: boolean): Promise<Response> {
-  const headers = {
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-  };
-  if (relaxTls) {
-    const { Agent, fetch: undiciFetch } = await import("undici");
-    return undiciFetch(url.toString(), {
-      redirect: "manual",
-      signal: AbortSignal.timeout(8_000),
-      headers,
-      dispatcher: new Agent({ connect: { rejectUnauthorized: false } }),
-    }) as unknown as Response;
-  }
-  return fetch(url.toString(), {
-    redirect: "manual",
-    signal: AbortSignal.timeout(8_000),
-    headers,
+type PublicGetResult = {
+  status: number;
+  location: string | null;
+  body: string;
+};
+
+function httpsGet(url: URL, rejectUnauthorized: boolean): Promise<PublicGetResult> {
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        hostname: url.hostname,
+        port: url.port || 443,
+        path: `${url.pathname}${url.search}`,
+        method: "GET",
+        rejectUnauthorized,
+        servername: url.hostname,
+        timeout: 8_000,
+        headers: {
+          Host: url.hostname,
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          Connection: "close",
+        },
+      },
+      (res: IncomingMessage) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (chunk: Buffer) => {
+          if (chunks.reduce((sum, part) => sum + part.length, 0) <= MAX_PUBLIC_BODY) {
+            chunks.push(chunk);
+          }
+        });
+        res.on("end", () => {
+          const raw = res.headers.location;
+          const location = Array.isArray(raw) ? raw[0] : raw;
+          resolve({
+            status: res.statusCode ?? 0,
+            location: location?.trim() || null,
+            body: Buffer.concat(chunks).toString("utf8"),
+          });
+        });
+      },
+    );
+    req.on("error", reject);
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error("timeout"));
+    });
+    req.end();
   });
 }
 
-async function fetchPublicOnceAllowingBadCert(
+async function httpsGetAllowingBadCert(
   url: URL,
-): Promise<{ response: Response; tlsTrusted: boolean }> {
+): Promise<{ result: PublicGetResult; tlsTrusted: boolean }> {
   try {
-    return { response: await fetchPublicOnce(url, false), tlsTrusted: true };
+    return { result: await httpsGet(url, true), tlsTrusted: true };
   } catch (error) {
     if (!isTlsError(error)) mapPublicFetchError(error);
     try {
-      return { response: await fetchPublicOnce(url, true), tlsTrusted: false };
+      return { result: await httpsGet(url, false), tlsTrusted: false };
     } catch (retryError) {
       mapPublicFetchError(retryError);
     }
@@ -292,26 +333,25 @@ export async function fetchPublicHtml(
 ): Promise<{ url: URL; html: string; tlsTrusted: boolean }> {
   let url = await assertPublicHttpsUrl(raw);
   let tlsTrusted = true;
-  let fetched = await fetchPublicOnceAllowingBadCert(url);
+  let fetched = await httpsGetAllowingBadCert(url);
   tlsTrusted = tlsTrusted && fetched.tlsTrusted;
-  let response = fetched.response;
+  let result = fetched.result;
 
-  for (let hop = 0; hop < 5 && response.status >= 300 && response.status < 400; hop += 1) {
-    const location = response.headers.get("location")?.trim();
-    if (!location) {
+  for (let hop = 0; hop < 5 && result.status >= 300 && result.status < 400; hop += 1) {
+    if (!result.location) {
       throw new SsrfError("리다이렉트 위치를 확인할 수 없습니다.");
     }
-    const next = new URL(location, url);
+    const next = new URL(result.location, url);
     if (next.protocol === "http:") next.protocol = "https:";
     url = await assertPublicHttpsUrl(next.toString());
-    fetched = await fetchPublicOnceAllowingBadCert(url);
+    fetched = await httpsGetAllowingBadCert(url);
     tlsTrusted = tlsTrusted && fetched.tlsTrusted;
-    response = fetched.response;
+    result = fetched.result;
   }
 
-  if (!response.ok) {
-    throw new SsrfError(`페이지를 불러오지 못했습니다. (${response.status})`);
+  if (result.status < 200 || result.status >= 300) {
+    throw new SsrfError(`페이지를 불러오지 못했습니다. (${result.status})`);
   }
 
-  return { url, html: (await response.text()).slice(0, MAX_PUBLIC_BODY), tlsTrusted };
+  return { url, html: result.body.slice(0, MAX_PUBLIC_BODY), tlsTrusted };
 }
