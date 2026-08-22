@@ -1,5 +1,5 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { isAdminEmail } from "./admin/emails";
+import { isAdminEmail, pickAccountEmail } from "./admin/emails";
 import { getUserPlanContext } from "./db/users";
 import { getPlan, superAdminPlan } from "./plans";
 
@@ -32,12 +32,13 @@ export async function getAuthContext() {
   }
 
   const user = await currentUser();
-  const email = user?.emailAddresses?.[0]?.emailAddress ?? null;
+  const email = pickAccountEmail(user);
   const context = await getUserPlanContext(userId, email);
+  const admin = isAdminEmail(email) || isAdminEmail(context.user?.email);
   return {
     userId,
-    email,
-    plan: isAdminEmail(email) ? superAdminPlan() : context.plan,
+    email: admin ? email ?? context.user?.email ?? null : email,
+    plan: admin ? superAdminPlan() : context.plan,
     user: context.user,
     authEnabled: true,
   };

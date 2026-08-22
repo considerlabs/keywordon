@@ -1,6 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { db, hasDatabase } from "./index";
 import { users, type UserRow } from "./schema";
+import { isAdminEmail } from "../admin/emails";
 import { getPlan, type PlanId } from "../plans";
 
 type MemoryUser = {
@@ -149,6 +150,9 @@ export async function setUserPlan(clerkId: string, plan: PlanId) {
 /** Atomically consume one AI credit if under monthly limit. */
 export async function tryConsumeAiUsage(clerkId: string, limit: number) {
   const user = await ensureUser(clerkId);
+  if (isAdminEmail(user.email) || limit >= 1_000_000) {
+    return { ok: true as const, used: user.aiUsedMonth };
+  }
   if (limit <= 0) return { ok: false as const, used: user.aiUsedMonth };
 
   if (!hasDatabase || !db) {
@@ -179,6 +183,9 @@ export async function tryConsumeAiUsage(clerkId: string, limit: number) {
 /** Atomically consume one Google analysis credit if under monthly limit. */
 export async function tryConsumeGoogleUsage(clerkId: string, limit: number) {
   const user = await ensureUser(clerkId);
+  if (isAdminEmail(user.email) || limit >= 1_000_000) {
+    return { ok: true as const, used: user.googleUsedMonth };
+  }
   if (limit <= 0) return { ok: false as const, used: user.googleUsedMonth };
 
   if (!hasDatabase || !db) {

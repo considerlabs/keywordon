@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { isAdminEmail, parseAdminEmails } from "./emails";
+import { isAdminEmail, parseAdminEmails, pickAccountEmail } from "./emails";
 
 describe("admin emails", () => {
   const original = process.env.ADMIN_EMAILS;
@@ -25,5 +25,18 @@ describe("admin emails", () => {
     process.env.ADMIN_EMAILS = "ops@example.com";
     expect(parseAdminEmails()).toEqual(["considerlabs@gmail.com", "ops@example.com"]);
     expect(isAdminEmail("considerlabs@gmail.com")).toBe(true);
+  });
+});
+
+describe("pickAccountEmail", () => {
+  it("prefers considerlabs@gmail.com even when it is not Clerk's first address", () => {
+    const email = pickAccountEmail({
+      primaryEmailAddressId: "1",
+      emailAddresses: [
+        { id: "1", emailAddress: "alias@keywordon.app" },
+        { id: "2", emailAddress: "considerlabs@gmail.com" },
+      ],
+    });
+    expect(email).toBe("considerlabs@gmail.com");
   });
 });
