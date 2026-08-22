@@ -1,5 +1,4 @@
 import type { AutomationSuggestion } from "./types";
-import { getCuratedSuggestions } from "./suggestions";
 
 export type DirectoryPost = {
   title: string;
@@ -115,23 +114,18 @@ async function fetchDirectoryPosts(directorySeq: number, count = 3): Promise<Dir
   return parseDirectoryPostListPayload(await response.text());
 }
 
-/** Live “오늘의 추천” from Naver blog directory feeds. Falls back to curated list. */
+/** Live “오늘의 추천” from Naver blog directory feeds. No curated placeholders. */
 export async function buildLiveSuggestions(limit = 12): Promise<{
   suggestions: AutomationSuggestion[];
-  source: "live" | "curated";
+  source: "live";
 }> {
   try {
     const batches = await Promise.all(
       DIRECTORY_SEQS.map((seq) => fetchDirectoryPosts(seq, 2)),
     );
     const posts = batches.flat();
-    const suggestions = mapDirectoryPostsToSuggestions(posts, limit);
-    if (suggestions.length >= 5) {
-      return { suggestions, source: "live" };
-    }
+    return { suggestions: mapDirectoryPostsToSuggestions(posts, limit), source: "live" };
   } catch {
-    /* fall through */
+    return { suggestions: [], source: "live" };
   }
-
-  return { suggestions: getCuratedSuggestions().slice(0, limit), source: "curated" };
 }

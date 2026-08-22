@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { applyDiscoverLimits, checkNaverRateLimit } from "@/lib/quota";
-import { discoverKeywords } from "@/lib/keyword-engine";
+import { discoverLiveKeywords } from "@/lib/providers/keyword-data";
 
 export async function GET(request: NextRequest) {
   const authContext = await getAuthContext();
@@ -19,12 +19,18 @@ export async function GET(request: NextRequest) {
   }
 
   const seed = request.nextUrl.searchParams.get("q")?.trim() ?? "마케팅";
-  const items = applyDiscoverLimits(discoverKeywords(seed), authContext.plan);
-
-  return NextResponse.json({
-    seed,
-    items,
-    locked: { opportunityScore: !authContext.plan.limits.opportunityScore },
-    planName: authContext.plan.name,
-  });
+  try {
+    const items = applyDiscoverLimits(await discoverLiveKeywords(seed), authContext.plan);
+    return NextResponse.json({
+      seed,
+      items,
+      locked: { opportunityScore: !authContext.plan.limits.opportunityScore },
+      planName: authContext.plan.name,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "키워드 발굴에 실패했습니다." },
+      { status: 502 },
+    );
+  }
 }

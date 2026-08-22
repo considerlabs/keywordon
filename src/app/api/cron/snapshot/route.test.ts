@@ -5,13 +5,13 @@ vi.mock("@/lib/db/index", () => ({
   db: { insert: vi.fn() },
   hasDatabase: true,
 }));
-vi.mock("@/lib/keyword-engine", () => ({
-  getRealtimeTrends: vi.fn(),
+vi.mock("@/lib/trends/live", () => ({
+  fetchRealtimeTrends: vi.fn(),
 }));
 
 import { db } from "@/lib/db/index";
 import { keywordSnapshots } from "@/lib/db/schema";
-import { getRealtimeTrends } from "@/lib/keyword-engine";
+import { fetchRealtimeTrends } from "@/lib/trends/live";
 import { POST } from "./route";
 
 function cronRequest(headers: Record<string, string> = {}) {
@@ -29,9 +29,9 @@ describe("POST /api/cron/snapshot", () => {
     process.env.CRON_SECRET = "test-secret";
     vi.mocked(db!.insert).mockReturnValue({ values: insertValues } as never);
     insertValues.mockResolvedValue(undefined);
-    vi.mocked(getRealtimeTrends).mockReturnValue([
-      { rank: 1, keyword: "부동산 정책", change: "up", delta: 3 },
-      { rank: 2, keyword: "여름 휴가 추천", change: "new", delta: 1 },
+    vi.mocked(fetchRealtimeTrends).mockResolvedValue([
+      { rank: 1, keyword: "부동산 정책", change: "up", delta: 0 },
+      { rank: 2, keyword: "여름 휴가 추천", change: "new", delta: 0 },
     ]);
   });
 
@@ -57,7 +57,7 @@ describe("POST /api/cron/snapshot", () => {
     expect(db!.insert).not.toHaveBeenCalled();
   });
 
-  it("inserts one snapshot row per trend item on a valid bearer request", async () => {
+  it("inserts one snapshot row per live trend item on a valid bearer request", async () => {
     const response = await POST(cronRequest({ authorization: "Bearer test-secret" }));
     const body = await response.json();
 

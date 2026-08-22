@@ -13,6 +13,7 @@ function actorKey(actorId: string) {
 
 /** Prefer DB-backed RPM when Neon is available so multi-instance deploys share the counter. */
 export async function checkNaverRateLimit(actorId: string, plan: PlanDefinition) {
+  if (plan.unrestricted) return { ok: true as const };
   const limit = plan.limits.naverPerMinute;
   const now = Date.now();
   const windowStart = new Date(now - 60_000);
@@ -69,6 +70,18 @@ export function applyPlanLimits(
   data: KeywordAnalysis,
   plan: PlanDefinition,
 ): AnalysisViewModel {
+  if (plan.unrestricted) {
+    return {
+      ...data,
+      locked: {
+        opportunityScore: false,
+        issueInfo: false,
+        cpc: false,
+        contentVolume: false,
+      },
+      planName: plan.name,
+    };
+  }
   return {
     ...data,
     relatedInternal: data.relatedInternal.slice(0, plan.limits.relatedInternal),
@@ -93,6 +106,9 @@ export function applyDiscoverLimits(
   items: RelatedKeyword[],
   plan: PlanDefinition,
 ): Array<Omit<RelatedKeyword, "opportunityScore"> & { opportunityScore: number | null }> {
+  if (plan.unrestricted) {
+    return items.map((item) => ({ ...item, opportunityScore: item.opportunityScore }));
+  }
   const capped = items.slice(
     0,
     Math.max(plan.limits.relatedInternal, plan.limits.relatedSerp, 10),
@@ -104,6 +120,7 @@ export function applyDiscoverLimits(
 }
 
 export function assertBulkAllowed(count: number, plan: PlanDefinition) {
+  if (plan.unrestricted) return { ok: true as const };
   if (plan.limits.bulkMax <= 0) {
     return { ok: false as const, error: "대량 조회는 회원 전용입니다. 로그인해 주세요." };
   }
@@ -121,6 +138,7 @@ export function assertFeature(
   feature: keyof PlanDefinition["limits"],
   label: string,
 ) {
+  if (plan.unrestricted) return { ok: true as const };
   const value = plan.limits[feature];
   const allowed = typeof value === "boolean" ? value : Number(value) > 0;
   if (!allowed) {

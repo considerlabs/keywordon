@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
-import { analyzeKeyword } from "@/lib/keyword-engine";
+import { resolveKeywordAnalysis } from "@/lib/providers/keyword-data";
 import { assertFeature } from "@/lib/quota";
 import { getKeywordRankHistory } from "@/lib/trends/snapshots";
 import { rankHistoryToSparkline } from "@/lib/trends/sparkline";
@@ -24,13 +24,19 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
   const history = await getKeywordRankHistory(keyword);
   const sparkline = rankHistoryToSparkline(history);
-  const analysis = analyzeKeyword(keyword, "naver");
+  let monthlyVolume: number | null = null;
+  try {
+    const { data } = await resolveKeywordAnalysis(keyword, "naver");
+    monthlyVolume = data.monthlyVolume;
+  } catch {
+    monthlyVolume = history.at(-1)?.monthlyVolume ?? null;
+  }
 
   return NextResponse.json({
     keyword,
-    monthlyVolume: analysis.monthlyVolume,
-    category: analysis.category,
-    subcategory: analysis.subcategory,
+    monthlyVolume,
+    category: null,
+    subcategory: null,
     history: history.map((row) => ({
       bucketHour: row.bucketHour,
       rank: row.rank,

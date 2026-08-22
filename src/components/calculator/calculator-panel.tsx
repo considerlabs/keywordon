@@ -5,9 +5,9 @@ import { estimateAdpostRevenue } from "@/lib/calculator/adpost";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 
 export function CalculatorPanel() {
-  const [monthlyViews, setMonthlyViews] = useState(30000);
-  const [ctrPercent, setCtrPercent] = useState(1.2);
-  const [cpc, setCpc] = useState(120);
+  const [monthlyViews, setMonthlyViews] = useState(0);
+  const [ctrPercent, setCtrPercent] = useState(0);
+  const [cpc, setCpc] = useState(0);
 
   const estimate = useMemo(
     () => estimateAdpostRevenue({ monthlyViews, ctrPercent, cpc }),
@@ -24,7 +24,7 @@ export function CalculatorPanel() {
           애드포스트 수익 계산기
         </h1>
         <p className="mt-2 text-[var(--muted)]">
-          월간 조회수, CTR, CPC를 입력하면 예상 월 수익을 추정합니다. 결과는 예시 계수 기반 추정치입니다.
+          조회수 × CTR × CPC를 입력값 그대로 곱합니다. 사이트에서 숫자를 만들어 넣지 않습니다.
         </p>
       </div>
 
@@ -86,8 +86,7 @@ export function CalculatorPanel() {
           </div>
         </dl>
         <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
-          본 계산기는 실제 네이버 애드포스트 정산과 다를 수 있는 추정치입니다. 카테고리·계절·콘텐츠 품질에 따라
-          결과가 달라질 수 있습니다.
+          입력한 세 숫자를 곱한 결과입니다. 애드포스트 실제 정산 데이터는 불러오지 않습니다.
         </p>
       </section>
     </div>

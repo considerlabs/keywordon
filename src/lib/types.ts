@@ -39,6 +39,6 @@ export type AnalysisViewModel = {
     cpc: boolean;
     contentVolume: boolean;
   };
-  dataSource?: "live" | "simulated";
+  dataSource?: "live";
   planName?: string;
 };

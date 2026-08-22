@@ -11,10 +11,14 @@ vi.mock("@/lib/quota", async () => {
     checkNaverRateLimit: vi.fn(),
   };
 });
+vi.mock("@/lib/providers/keyword-data", () => ({
+  resolveBulk: vi.fn(),
+}));
 
 import { getAuthContext } from "@/lib/auth";
 import { checkNaverRateLimit } from "@/lib/quota";
 import { getPlan } from "@/lib/plans";
+import { resolveBulk } from "@/lib/providers/keyword-data";
 import { POST } from "./route";
 
 function bulkRequest(keywords: string[], engine = "naver") {
@@ -45,6 +49,7 @@ describe("POST /api/bulk — Naver RPM accounting", () => {
 
   it("calls checkNaverRateLimit once per unique keyword, not once per request", async () => {
     vi.mocked(checkNaverRateLimit).mockResolvedValue({ ok: true });
+    vi.mocked(resolveBulk).mockResolvedValue({ results: [], source: "live" });
 
     const response = await POST(bulkRequest(["김치찌개", "된장찌개", "된장찌개", "순두부찌개"]));
 

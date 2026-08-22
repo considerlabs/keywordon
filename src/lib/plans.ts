@@ -32,6 +32,7 @@ export interface PlanDefinition {
     blogAnalysis: boolean;
     trendAccess: boolean;
   };
+  unrestricted?: boolean;
   stripePriceEnv?: {
     monthly?: string;
     yearly?: string;
@@ -223,4 +224,44 @@ export const PAID_PLANS: PlanId[] = ["basic", "super", "enterprise"];
 export function getPlan(id: PlanId | string | null | undefined): PlanDefinition {
   if (id && id in PLANS) return PLANS[id as PlanId];
   return PLANS.guest;
+}
+
+const OPEN = 1_000_000;
+
+/** Logged-in super admin: every feature on, numeric caps effectively unlimited. */
+export function superAdminPlan(): PlanDefinition {
+  return {
+    id: "enterprise",
+    name: "슈퍼관리자",
+    priceMonthly: 0,
+    priceYearly: 0,
+    description: "내부 슈퍼관리자 — 기능 제한 없음",
+    highlights: ["모든 기능", "한도 없음"],
+    unrestricted: true,
+    limits: {
+      naverPerMinute: OPEN,
+      googleMonthly: OPEN,
+      relatedInternal: OPEN,
+      relatedSerp: OPEN,
+      trendCompare: OPEN,
+      bulkMax: OPEN,
+      historyDays: OPEN,
+      honeyBoxMax: OPEN,
+      siteDiagnosis: OPEN,
+      aiMonthly: OPEN,
+      automationIdeasDaily: OPEN,
+      shortformMonthly: OPEN,
+      postAuditMonthly: OPEN,
+      personaMonthly: OPEN,
+      dataYears: 10,
+      csvExport: true,
+      opportunityScore: true,
+      issueInfo: true,
+      cpc: true,
+      contentVolume: true,
+      copilot: true,
+      blogAnalysis: true,
+      trendAccess: true,
+    },
+  };
 }

@@ -35,11 +35,15 @@ export default async function AnalyzePage({ searchParams }: AnalyzePageProps) {
               ? "구글 키워드 분석은 베이직 이상 플랜에서 이용할 수 있습니다."
               : `이번 달 구글 분석 한도(${authContext.plan.limits.googleMonthly}회)를 모두 사용했습니다.`;
         } else {
-          const resolved = await resolveKeywordAnalysis(keyword, engine);
-          data = {
-            ...applyPlanLimits(resolved.data, authContext.plan),
-            dataSource: resolved.source,
-          };
+          try {
+            const resolved = await resolveKeywordAnalysis(keyword, engine);
+            data = {
+              ...applyPlanLimits(resolved.data, authContext.plan),
+              dataSource: resolved.source,
+            };
+          } catch (err) {
+            error = err instanceof Error ? err.message : "분석에 실패했습니다.";
+          }
         }
       }
     } else {
@@ -47,11 +51,15 @@ export default async function AnalyzePage({ searchParams }: AnalyzePageProps) {
       if (!rate.ok) {
         error = rate.error;
       } else {
-        const resolved = await resolveKeywordAnalysis(keyword, engine);
-        data = {
-          ...applyPlanLimits(resolved.data, authContext.plan),
-          dataSource: resolved.source,
-        };
+        try {
+          const resolved = await resolveKeywordAnalysis(keyword, engine);
+          data = {
+            ...applyPlanLimits(resolved.data, authContext.plan),
+            dataSource: resolved.source,
+          };
+        } catch (err) {
+          error = err instanceof Error ? err.message : "분석에 실패했습니다.";
+        }
       }
     }
   }
@@ -68,7 +76,7 @@ export default async function AnalyzePage({ searchParams }: AnalyzePageProps) {
           키워드 분석
         </h1>
         <p className="mt-2 text-[var(--muted)]">
-          검색량, 콘텐츠 발행량, CPC, 기회지수, 연관 검색어를 한 번에 확인하세요.
+          네이버 검색광고 API 실측 검색량과 연관어만 표시합니다. 없는 지표는 비워 둡니다.
         </p>
         <div className="mt-6">
           <KeywordSearchForm

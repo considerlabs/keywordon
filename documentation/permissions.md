@@ -7,7 +7,7 @@
 | Session / `userId` | Clerk | |
 | Email | Clerk primary email | synced into `users.email` |
 | Plan | Neon `users.plan` | **not** Clerk public_metadata for enforcement |
-| Role `admin` | Clerk metadata only (optional label) | **not** checked in app code |
+| Role `admin` | Clerk primary email ∈ allowlist | `considerlabs@gmail.com` always; plus `ADMIN_EMAILS` |
 
 ## Roles (effective)
 
@@ -16,6 +16,7 @@
 | Guest | No Clerk session |
 | Free member | Signed up → `ensureUser` defaults `free` |
 | Paid | Stripe webhook / manual SQL |
+| Super admin | Clerk email `considerlabs@gmail.com` → `superAdminPlan()` | all features, no quotas |
 | “Admin” tester | Manual `plan=enterprise` (see 인수인계) |
 
 ## Matrix (resource × operation)
@@ -32,7 +33,7 @@
 | Copilot AI | ✗ | ✓ (20/mo) | ✓ | ✓ | ✓ |
 | `/site` page | middleware blocks | if logged in | ✓ feature | ✓ | ✓ |
 
-Exact numbers: `src/lib/plans.ts`. Enforcement: `src/lib/quota.ts` + each route.
+Exact numbers: `src/lib/plans.ts`. Enforcement: `src/lib/quota.ts` + each route. Super admin skips gates via `plan.unrestricted`.
 
 ## Data access
 

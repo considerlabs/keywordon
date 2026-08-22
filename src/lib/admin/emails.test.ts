@@ -20,4 +20,10 @@ describe("admin emails", () => {
     delete process.env.ADMIN_EMAILS;
     expect(parseAdminEmails()).toEqual(["considerlabs@gmail.com"]);
   });
+
+  it("always keeps considerlabs@gmail.com even if ADMIN_EMAILS omits it", () => {
+    process.env.ADMIN_EMAILS = "ops@example.com";
+    expect(parseAdminEmails()).toEqual(["considerlabs@gmail.com", "ops@example.com"]);
+    expect(isAdminEmail("considerlabs@gmail.com")).toBe(true);
+  });
 });

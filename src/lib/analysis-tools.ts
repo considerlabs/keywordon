@@ -174,7 +174,6 @@ function scoreFromItems(items: RssItem[], totalPosts?: number | null) {
 
   const consistencyScore = clamp(25 + monthlyPosts * 10 + recent90 * 2, 20, 95);
   const overallScore = clamp((indexScore + keywordScore + consistencyScore) / 3, 0, 100);
-  const estimatedMonthlyVisitors = monthlyPosts * 350 + postCount * 25;
 
   const recommendations = [
     indexScore < 60
@@ -192,7 +191,6 @@ function scoreFromItems(items: RssItem[], totalPosts?: number | null) {
     metrics: {
       postCount,
       monthlyPosts,
-      estimatedMonthlyVisitors,
       indexScore,
       keywordScore,
       consistencyScore,

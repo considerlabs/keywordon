@@ -1,16 +1,14 @@
-const DEFAULT_ADMIN = "considerlabs@gmail.com";
+export const SUPER_ADMIN_EMAIL = "considerlabs@gmail.com";
 
 export function parseAdminEmails(): string[] {
   const raw = process.env.ADMIN_EMAILS?.trim();
-  if (!raw) return [DEFAULT_ADMIN];
-  return [
-    ...new Set(
-      raw
+  const extras = raw
+    ? raw
         .split(",")
         .map((email) => email.trim().toLowerCase())
-        .filter(Boolean),
-    ),
-  ];
+        .filter(Boolean)
+    : [];
+  return [...new Set([SUPER_ADMIN_EMAIL, ...extras])];
 }
 
 export function isAdminEmail(email: string | null | undefined): boolean {

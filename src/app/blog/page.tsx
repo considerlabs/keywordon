@@ -13,7 +13,6 @@ interface BlogReport {
   metrics: {
     postCount: number;
     monthlyPosts: number;
-    estimatedMonthlyVisitors: number;
     indexScore: number;
     keywordScore: number;
     consistencyScore: number;
@@ -103,7 +102,7 @@ export default function BlogPage() {
               {[
                 ["발행 글", report.metrics.postCount],
                 ["최근 30일 발행", report.metrics.monthlyPosts],
-                ["추정 방문자", formatNumber(report.metrics.estimatedMonthlyVisitors)],
+                ["관찰 점수", report.metrics.overallScore],
               ].map(([label, value]) => (
                 <div key={String(label)} className="rounded-2xl bg-[var(--canvas)] p-4">
                   <p className="text-sm text-[var(--muted)]">{label}</p>

@@ -1,6 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { isAdminEmail } from "./admin/emails";
 import { getUserPlanContext } from "./db/users";
-import { getPlan } from "./plans";
+import { getPlan, superAdminPlan } from "./plans";
 
 export function isClerkConfigured() {
   return Boolean(
@@ -36,7 +37,7 @@ export async function getAuthContext() {
   return {
     userId,
     email,
-    plan: context.plan,
+    plan: isAdminEmail(email) ? superAdminPlan() : context.plan,
     user: context.user,
     authEnabled: true,
   };

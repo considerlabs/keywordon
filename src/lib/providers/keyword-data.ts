@@ -1,8 +1,14 @@
 import crypto from "node:crypto";
-import { analyzeKeyword, type Engine, type KeywordAnalysis } from "../keyword-engine";
+import {
+  emptyKeywordAnalysis,
+  type AdCompetition,
+  type Engine,
+  type KeywordAnalysis,
+  type RelatedKeyword,
+} from "../keyword-engine";
 import { getSetting } from "../settings/store";
 
-interface NaverKeywordItem {
+export interface NaverKeywordItem {
   relKeyword: string;
   monthlyPcQcCnt: string | number;
   monthlyMobileQcCnt: string | number;
@@ -27,6 +33,12 @@ function signNaver(timestamp: string, method: string, uri: string, secret: strin
   return crypto.createHmac("sha256", secret).update(message).digest("base64");
 }
 
+const COMPETITION: Record<string, AdCompetition> = {
+  높음: "심화",
+  중간: "혼잡",
+  낮음: "적당",
+};
+
 export async function hasNaverCredentials() {
   const [customerId, apiKey, secret] = await Promise.all([
     getSetting("NAVER_SEARCHAD_CUSTOMER_ID"),
@@ -42,6 +54,61 @@ export async function hasGoogleCredentials() {
     getSetting("GOOGLE_ADS_CUSTOMER_ID"),
   ]);
   return Boolean(token && customerId);
+}
+
+export function analysisFromNaverList(
+  keyword: string,
+  list: NaverKeywordItem[],
+): KeywordAnalysis | null {
+  const exact =
+    list.find(
+      (item) =>
+        item.relKeyword.replace(/\s+/g, "").toLowerCase() ===
+        keyword.replace(/\s+/g, "").toLowerCase(),
+    ) ?? list[0];
+  if (!exact) return null;
+
+  const pcVolume = parseCount(exact.monthlyPcQcCnt);
+  const mobileVolume = parseCount(exact.monthlyMobileQcCnt);
+  const monthlyVolume = pcVolume + mobileVolume;
+  const adCompetition = COMPETITION[exact.compIdx ?? ""] ?? "없음";
+
+  const related: RelatedKeyword[] = list
+    .filter((item) => item.relKeyword !== exact.relKeyword)
+    .slice(0, 20)
+    .map((item) => {
+      const volume = parseCount(item.monthlyPcQcCnt) + parseCount(item.monthlyMobileQcCnt);
+      return {
+        keyword: item.relKeyword,
+        monthlyVolume: volume,
+        opportunityScore: 0,
+        competition: COMPETITION[item.compIdx ?? ""] ?? "없음",
+        source: "serp" as const,
+      };
+    });
+
+  const base = emptyKeywordAnalysis(keyword, "naver");
+  return {
+    ...base,
+    monthlyVolume,
+    pcVolume,
+    mobileVolume,
+    volumeChangeRate: 0,
+    cpc: 0,
+    adCompetition,
+    opportunityScore: 0,
+    issueLevel: "없음",
+    issueScore: 0,
+    relatedSerp: related.slice(0, 10),
+    relatedInternal: related.slice(0, 12).map((item) => ({ ...item, source: "internal" as const })),
+    smartBlockKeywords: related.slice(0, 6).map((item) => item.keyword),
+    nextKeywords: related.slice(0, 5).map((item) => item.keyword),
+    deviceRatio: {
+      pc: monthlyVolume ? Number(((pcVolume / monthlyVolume) * 100).toFixed(1)) : 0,
+      mobile: monthlyVolume ? Number(((mobileVolume / monthlyVolume) * 100).toFixed(1)) : 0,
+    },
+    summary: `'${keyword}' 네이버 검색광고 실측 월간 검색량 ${monthlyVolume.toLocaleString("ko-KR")}회 · 광고 경쟁 ${adCompetition}. CPC·인구통계·발행량은 API가 제공하지 않아 표시하지 않습니다.`,
+  };
 }
 
 async function fetchNaverKeyword(keyword: string): Promise<KeywordAnalysis | null> {
@@ -72,92 +139,43 @@ async function fetchNaverKeyword(keyword: string): Promise<KeywordAnalysis | nul
   }
 
   const payload = (await response.json()) as { keywordList?: NaverKeywordItem[] };
-  const list = payload.keywordList ?? [];
-  const exact =
-    list.find(
-      (item) => item.relKeyword.replace(/\s+/g, "").toLowerCase() === keyword.replace(/\s+/g, "").toLowerCase(),
-    ) ?? list[0];
-
-  if (!exact) return null;
-
-  const base = analyzeKeyword(keyword, "naver");
-  const pcVolume = parseCount(exact.monthlyPcQcCnt);
-  const mobileVolume = parseCount(exact.monthlyMobileQcCnt);
-  const monthlyVolume = pcVolume + mobileVolume;
-  const competitionMap: Record<string, KeywordAnalysis["adCompetition"]> = {
-    높음: "심화",
-    중간: "혼잡",
-    낮음: "적당",
-  };
-
-  const related = list
-    .filter((item) => item.relKeyword !== exact.relKeyword)
-    .slice(0, 20)
-    .map((item) => {
-      const volume = parseCount(item.monthlyPcQcCnt) + parseCount(item.monthlyMobileQcCnt);
-      return {
-        keyword: item.relKeyword,
-        monthlyVolume: volume,
-        opportunityScore: Math.max(0, 30 - Math.floor(volume / 8000)),
-        competition: competitionMap[item.compIdx ?? ""] ?? "적당",
-        source: "serp" as const,
-      };
-    });
-
-  // Keyword Tool does not return bid CPC; derive a coarse estimate from click share + ad depth.
-  const clicks =
-    parseCount(exact.monthlyAvePcClkCnt) + parseCount(exact.monthlyAveMobileClkCnt);
-  const depth = Math.max(1, parseCount(exact.plAvgDepth));
-  const estimatedCpc = Math.max(
-    50,
-    Math.round((clicks / Math.max(1, monthlyVolume)) * 1200 * depth),
-  );
-
-  return {
-    ...base,
-    monthlyVolume,
-    pcVolume,
-    mobileVolume,
-    cpc: estimatedCpc,
-    adCompetition: competitionMap[exact.compIdx ?? ""] ?? base.adCompetition,
-    relatedSerp: related.slice(0, 10),
-    relatedInternal: related.slice(0, 12).map((item) => ({ ...item, source: "internal" as const })),
-    summary: `'${keyword}' 네이버 실검색량 기준 월간 약 ${monthlyVolume.toLocaleString("ko-KR")}회입니다. (SearchAd API · CPC는 입찰가가 아닌 클릭·노출 깊이 기반 추정값)`,
-    deviceRatio: {
-      pc: monthlyVolume ? Number(((pcVolume / monthlyVolume) * 100).toFixed(1)) : 0,
-      mobile: monthlyVolume ? Number(((mobileVolume / monthlyVolume) * 100).toFixed(1)) : 0,
-    },
-  };
+  return analysisFromNaverList(keyword, payload.keywordList ?? []);
 }
 
 export async function resolveKeywordAnalysis(
   keyword: string,
   engine: Engine,
-): Promise<{ data: KeywordAnalysis; source: "live" | "simulated" }> {
-  if (engine === "naver" && (await hasNaverCredentials())) {
-    try {
-      const live = await fetchNaverKeyword(keyword);
-      if (live) return { data: live, source: "live" };
-    } catch (error) {
-      console.error("Naver live fetch failed", error);
-    }
+): Promise<{ data: KeywordAnalysis; source: "live" }> {
+  if (engine === "google") {
+    throw new Error("구글 키워드 실데이터는 연결되어 있지 않습니다. 네이버 검색을 이용해 주세요.");
+  }
+  if (!(await hasNaverCredentials())) {
+    throw new Error("네이버 검색광고 API 키가 없습니다. 관리자 설정에서 키를 등록해 주세요.");
   }
 
-  // Google Ads Keyword Plan requires OAuth + developer token; fall back until credentials are complete.
-  return { data: analyzeKeyword(keyword, engine), source: "simulated" };
+  const live = await fetchNaverKeyword(keyword);
+  if (!live) {
+    throw new Error("네이버 검색광고에서 해당 키워드 실측값을 찾지 못했습니다.");
+  }
+  return { data: live, source: "live" };
 }
 
 export async function resolveBulk(
   keywords: string[],
   engine: Engine,
-): Promise<{ results: KeywordAnalysis[]; source: "live" | "simulated" }> {
+): Promise<{ results: KeywordAnalysis[]; source: "live" }> {
   const unique = [...new Set(keywords.map((k) => k.trim()).filter(Boolean))].slice(0, 50);
   const results: KeywordAnalysis[] = [];
-  let anyLive = false;
   for (const keyword of unique) {
     const resolved = await resolveKeywordAnalysis(keyword, engine);
-    if (resolved.source === "live") anyLive = true;
     results.push(resolved.data);
   }
-  return { results, source: anyLive ? "live" : "simulated" };
+  return { results, source: "live" };
+}
+
+export async function discoverLiveKeywords(seedKeyword: string): Promise<RelatedKeyword[]> {
+  const { data } = await resolveKeywordAnalysis(seedKeyword || "마케팅", "naver");
+  return [...data.relatedInternal, ...data.relatedSerp]
+    .sort((a, b) => b.monthlyVolume - a.monthlyVolume)
+    .slice(0, 30);
 }

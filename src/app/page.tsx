@@ -2,10 +2,10 @@ import Link from "next/link";
 import { ArrowRight, ChartLine, Layers3, Sparkles } from "lucide-react";
 import { KeywordSearchForm } from "@/components/keyword-search-form";
 import { RealtimeTrends } from "@/components/realtime-trends";
-import { getRealtimeTrends } from "@/lib/keyword-engine";
+import { fetchRealtimeTrends } from "@/lib/trends/live";
 
-export default function HomePage() {
-  const trends = getRealtimeTrends();
+export default async function HomePage() {
+  const trends = await fetchRealtimeTrends().catch(() => []);
 
   return (
     <>

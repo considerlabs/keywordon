@@ -11,10 +11,14 @@ vi.mock("@/lib/quota", async () => {
     checkNaverRateLimit: vi.fn(),
   };
 });
+vi.mock("@/lib/providers/keyword-data", () => ({
+  discoverLiveKeywords: vi.fn(),
+}));
 
 import { getAuthContext } from "@/lib/auth";
 import { checkNaverRateLimit } from "@/lib/quota";
 import { getPlan } from "@/lib/plans";
+import { discoverLiveKeywords } from "@/lib/providers/keyword-data";
 import { GET } from "./route";
 
 function discoverRequest(q: string) {
@@ -41,6 +45,15 @@ describe("GET /api/discover — rate limiting", () => {
 
   it("returns results when under the rate limit", async () => {
     vi.mocked(checkNaverRateLimit).mockResolvedValue({ ok: true });
+    vi.mocked(discoverLiveKeywords).mockResolvedValue([
+      {
+        keyword: "마케팅 전략",
+        monthlyVolume: 1200,
+        opportunityScore: 0,
+        competition: "적당",
+        source: "serp",
+      },
+    ]);
 
     const response = await GET(discoverRequest("마케팅"));
     const body = await response.json();

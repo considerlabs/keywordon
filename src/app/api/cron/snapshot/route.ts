@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, hasDatabase } from "@/lib/db/index";
 import { keywordSnapshots } from "@/lib/db/schema";
-import { getRealtimeTrends } from "@/lib/keyword-engine";
+import { fetchRealtimeTrends } from "@/lib/trends/live";
 import { getSetting } from "@/lib/settings/store";
 import { truncateToHour } from "@/lib/trends/sparkline";
 
@@ -16,7 +16,7 @@ function isAuthorized(request: NextRequest, secret: string): boolean {
 
 async function captureSnapshots() {
   const bucketHour = truncateToHour(new Date());
-  const trends = getRealtimeTrends();
+  const trends = await fetchRealtimeTrends();
   const rows = trends.map((item) => ({
     keyword: item.keyword,
     engine: "naver" as const,

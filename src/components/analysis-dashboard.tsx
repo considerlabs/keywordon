@@ -82,7 +82,7 @@ export function AnalysisDashboard({ data }: { data: AnalysisViewModel }) {
               </span>
               {data.dataSource ? (
                 <span className="rounded-full bg-black/5 px-3 py-1 text-xs font-semibold text-[var(--muted)]">
-                  {data.dataSource === "live" ? "실데이터" : "시뮬레이션"}
+                  {data.dataSource === "live" ? "실데이터" : "데이터 없음"}
                 </span>
               ) : null}
               {data.planName ? (
@@ -103,7 +103,7 @@ export function AnalysisDashboard({ data }: { data: AnalysisViewModel }) {
               기회지수
             </p>
             <p className="font-[family-name:var(--font-display)] text-4xl font-bold">
-              {locked?.opportunityScore ? "—" : data.opportunityScore}
+              {locked?.opportunityScore || !data.opportunityScore ? "—" : data.opportunityScore}
               <span className="text-lg font-medium text-white/70"> / 30</span>
             </p>
             {locked?.opportunityScore ? (
@@ -123,8 +123,8 @@ export function AnalysisDashboard({ data }: { data: AnalysisViewModel }) {
         />
         <Metric
           label="검색량 변동"
-          value={`${changePositive ? "+" : ""}${data.volumeChangeRate}%`}
-          hint="전월 대비"
+          value={data.monthlyTrend.length ? `${changePositive ? "+" : ""}${data.volumeChangeRate}%` : "제공 없음"}
+          hint={data.monthlyTrend.length ? "전월 대비" : "SearchAd가 시계열을 주지 않습니다"}
         />
         <Metric
           label="CPC 단가"
@@ -132,7 +132,7 @@ export function AnalysisDashboard({ data }: { data: AnalysisViewModel }) {
             data.cpc === null || data.cpc === undefined
               ? "—"
               : data.cpc === 0
-                ? "0원"
+                ? "제공 없음"
                 : formatCurrency(data.cpc)
           }
           hint={data.adCompetition ? `광고 경쟁: ${data.adCompetition}` : undefined}
@@ -150,9 +150,14 @@ export function AnalysisDashboard({ data }: { data: AnalysisViewModel }) {
         <div className="rounded-3xl bg-[var(--panel)] p-6 ring-1 ring-black/5">
           <SectionTitle
             title="월간 검색량 추이"
-            description="최근 12개월 PC/Mobile 검색량 변화"
+            description="SearchAd는 월간 합계만 제공합니다"
           />
           <div className="h-72">
+            {data.monthlyTrend.length === 0 ? (
+              <p className="flex h-full items-center justify-center text-sm text-[var(--muted)]">
+                시계열 실측값이 없어 그래프를 그리지 않습니다.
+              </p>
+            ) : (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data.monthlyTrend}>
                 <defs>
@@ -181,11 +186,12 @@ export function AnalysisDashboard({ data }: { data: AnalysisViewModel }) {
                 />
               </AreaChart>
             </ResponsiveContainer>
+            )}
           </div>
         </div>
 
         <div className="rounded-3xl bg-[var(--panel)] p-6 ring-1 ring-black/5">
-          <SectionTitle title="연령 분포" description="추정 검색 유저 연령대" />
+          <SectionTitle title="연령 분포" description="연령 실측값은 API에 없습니다" />
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.ageDistribution} layout="vertical" margin={{ left: 8 }}>
@@ -216,14 +222,21 @@ export function AnalysisDashboard({ data }: { data: AnalysisViewModel }) {
         <div className="rounded-3xl bg-[var(--panel)] p-6 ring-1 ring-black/5">
           <SectionTitle
             title="콘텐츠 발행량"
-            description="블로그 · 카페 · 지식인 기준 추정 발행량"
+            description="검색광고 API는 문서 발행량을 제공하지 않습니다"
           />
-          {locked?.contentVolume || !data.content ? (
+          {locked?.contentVolume || !data.content || data.content.totalDocs === 0 ? (
             <div className="rounded-2xl bg-[var(--canvas)] px-4 py-8 text-center text-sm text-[var(--muted)]">
-              베이직 이상 플랜에서 콘텐츠 발행량을 확인할 수 있습니다.{" "}
-              <Link href="/shop" className="font-semibold text-[var(--brand)]">
-                업그레이드
-              </Link>
+              {locked?.contentVolume
+                ? "베이직 이상 플랜에서 확인할 수 있습니다."
+                : "이 지표의 실측 API가 없어 표시하지 않습니다."}
+              {locked?.contentVolume ? (
+                <>
+                  {" "}
+                  <Link href="/shop" className="font-semibold text-[var(--brand)]">
+                    업그레이드
+                  </Link>
+                </>
+              ) : null}
             </div>
           ) : (
           <div className="space-y-3">
@@ -246,10 +259,14 @@ export function AnalysisDashboard({ data }: { data: AnalysisViewModel }) {
         </div>
 
         <div className="rounded-3xl bg-[var(--panel)] p-6 ring-1 ring-black/5">
-          <SectionTitle title="검색어 분포" description="성별 · 디바이스 비율" />
+          <SectionTitle title="검색어 분포" description="성별은 제공되지 않습니다. 디바이스는 PC/모바일 검색량 비율입니다." />
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl bg-[var(--canvas)] p-4">
               <p className="mb-3 text-sm font-semibold text-[var(--ink)]">성별</p>
+              {data.genderRatio.male + data.genderRatio.female === 0 ? (
+                <p className="text-sm text-[var(--muted)]">실측 데이터가 없습니다.</p>
+              ) : (
+                <>
               <div className="mb-2 flex h-3 overflow-hidden rounded-full">
                 <div
                   className="bg-[var(--brand)]"
@@ -264,6 +281,8 @@ export function AnalysisDashboard({ data }: { data: AnalysisViewModel }) {
                 <span>남 {data.genderRatio.male}%</span>
                 <span>여 {data.genderRatio.female}%</span>
               </div>
+                </>
+              )}
             </div>
             <div className="rounded-2xl bg-[var(--canvas)] p-4">
               <p className="mb-3 text-sm font-semibold text-[var(--ink)]">디바이스</p>

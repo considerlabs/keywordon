@@ -3,11 +3,7 @@ import { getAuthContext } from "@/lib/auth";
 import { buildLiveSuggestions } from "@/lib/automation/live-suggestions";
 import { monthKey } from "@/lib/shortform/monthly";
 import { countShortformGenerationsThisMonth, insertProject, listProjects } from "@/lib/shortform/repository";
-import {
-  POPULAR_SHORTFORM_MOCK,
-  suggestionIdToBlogUrl,
-  type PopularShortformItem,
-} from "@/lib/shortform/types";
+import { suggestionIdToBlogUrl, type PopularShortformItem } from "@/lib/shortform/types";
 import { assertAllowedUrl, SsrfError } from "@/lib/ssrf";
 import { assertFeature } from "@/lib/quota";
 import { trimWriteField } from "@/lib/write/prompt";
@@ -16,9 +12,9 @@ async function loadPopularSources(): Promise<{
   popular: PopularShortformItem[];
   popularSource: "live" | "curated";
 }> {
-  const { suggestions, source } = await buildLiveSuggestions(8);
-  if (source === "curated" || suggestions.length === 0) {
-    return { popular: POPULAR_SHORTFORM_MOCK, popularSource: "curated" };
+  const { suggestions } = await buildLiveSuggestions(8);
+  if (suggestions.length === 0) {
+    return { popular: [], popularSource: "live" };
   }
   return {
     popularSource: "live",
