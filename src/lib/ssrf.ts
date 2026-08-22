@@ -1,4 +1,4 @@
-import { setDefaultResultOrder } from "node:dns";
+import { lookup as dnsLookup, setDefaultResultOrder } from "node:dns";
 import https from "node:https";
 import type { IncomingMessage } from "node:http";
 
@@ -267,6 +267,24 @@ type PublicGetResult = {
   body: string;
 };
 
+function looksLikeHtml(body: string): boolean {
+  return /<(?:html|head|body|title|meta|div|h1)\b/i.test(body);
+}
+
+function headerValue(res: IncomingMessage, name: string): string | null {
+  const raw = res.headers[name];
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return value?.trim() || null;
+}
+
+function redirectTarget(res: IncomingMessage): string | null {
+  const location = headerValue(res, "location");
+  if (location) return location;
+  const refresh = headerValue(res, "refresh");
+  const match = refresh?.match(/url\s*=\s*([^\s;]+)/i);
+  return match?.[1]?.replace(/^['"]|['"]$/g, "")?.trim() || null;
+}
+
 function httpsGet(url: URL, rejectUnauthorized: boolean): Promise<PublicGetResult> {
   return new Promise((resolve, reject) => {
     const req = https.request(
@@ -278,6 +296,15 @@ function httpsGet(url: URL, rejectUnauthorized: boolean): Promise<PublicGetResul
         rejectUnauthorized,
         servername: url.hostname,
         timeout: 8_000,
+        lookup: (hostname, _options, callback) => {
+          dnsLookup(hostname, { family: 4 }, (err, address, family) => {
+            if (!err) {
+              callback(null, address, family);
+              return;
+            }
+            dnsLookup(hostname, callback);
+          });
+        },
         headers: {
           Host: url.hostname,
           "User-Agent":
@@ -294,11 +321,9 @@ function httpsGet(url: URL, rejectUnauthorized: boolean): Promise<PublicGetResul
           }
         });
         res.on("end", () => {
-          const raw = res.headers.location;
-          const location = Array.isArray(raw) ? raw[0] : raw;
           resolve({
             status: res.statusCode ?? 0,
-            location: location?.trim() || null,
+            location: redirectTarget(res),
             body: Buffer.concat(chunks).toString("utf8"),
           });
         });
@@ -333,25 +358,45 @@ export async function fetchPublicHtml(
 ): Promise<{ url: URL; html: string; tlsTrusted: boolean }> {
   let url = await assertPublicHttpsUrl(raw);
   let tlsTrusted = true;
-  let fetched = await httpsGetAllowingBadCert(url);
-  tlsTrusted = tlsTrusted && fetched.tlsTrusted;
-  let result = fetched.result;
+  const seen = new Set<string>();
 
-  for (let hop = 0; hop < 5 && result.status >= 300 && result.status < 400; hop += 1) {
-    if (!result.location) {
-      throw new SsrfError("리다이렉트 위치를 확인할 수 없습니다.");
+  for (let hop = 0; hop < 12; hop += 1) {
+    const key = url.href.replace(/\/$/, "");
+    if (seen.has(key)) {
+      break;
     }
-    const next = new URL(result.location, url);
-    if (next.protocol === "http:") next.protocol = "https:";
-    url = await assertPublicHttpsUrl(next.toString());
-    fetched = await httpsGetAllowingBadCert(url);
-    tlsTrusted = tlsTrusted && fetched.tlsTrusted;
-    result = fetched.result;
-  }
+    seen.add(key);
 
-  if (result.status < 200 || result.status >= 300) {
+    const fetched = await httpsGetAllowingBadCert(url);
+    tlsTrusted = tlsTrusted && fetched.tlsTrusted;
+    const result = fetched.result;
+
+    if (result.status >= 200 && result.status < 300) {
+      return { url, html: result.body.slice(0, MAX_PUBLIC_BODY), tlsTrusted };
+    }
+
+    if (result.status >= 300 && result.status < 400) {
+      if (looksLikeHtml(result.body) && result.body.length > 40) {
+        return { url, html: result.body.slice(0, MAX_PUBLIC_BODY), tlsTrusted };
+      }
+      if (!result.location) {
+        throw new SsrfError("리다이렉트 위치를 확인할 수 없습니다.");
+      }
+      const next = new URL(result.location, url);
+      if (next.protocol === "http:") next.protocol = "https:";
+      const nextUrl = await assertPublicHttpsUrl(next.toString());
+      if (nextUrl.href.replace(/\/$/, "") === key) {
+        if (looksLikeHtml(result.body)) {
+          return { url, html: result.body.slice(0, MAX_PUBLIC_BODY), tlsTrusted };
+        }
+        throw new SsrfError("사이트가 같은 주소로 리다이렉트를 반복합니다.");
+      }
+      url = nextUrl;
+      continue;
+    }
+
     throw new SsrfError(`페이지를 불러오지 못했습니다. (${result.status})`);
   }
 
-  return { url, html: result.body.slice(0, MAX_PUBLIC_BODY), tlsTrusted };
+  throw new SsrfError("사이트가 리다이렉트를 반복해서 페이지를 열 수 없습니다.");
 }

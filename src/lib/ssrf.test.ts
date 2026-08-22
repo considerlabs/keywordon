@@ -195,4 +195,15 @@ describe("fetchPublicHtml", () => {
     expect(result.html).toContain("ok");
     expect(result.tlsTrusted).toBe(false);
   });
+
+  it("uses HTML on a 307 when the site keeps redirecting to itself", async () => {
+    stubHttps(() => ({
+      status: 307,
+      location: "https://example.com/",
+      body: "<html><head><title>홈</title></head><body><h1>환영합니다</h1></body></html>",
+    }));
+
+    const result = await fetchPublicHtml("https://example.com/");
+    expect(result.html).toContain("환영합니다");
+  });
 });
